@@ -3,7 +3,7 @@ let TEMPLE_OVERRIDES = {}; // You can later load a temples.json here
 
 async function init() {
   try {
-    const res = await fetch("data/arie_pandya_chola.json");
+    const res = await fetch("arie_pandya_chola.json");
     DATA = await res.json();
     populateFilters();
     renderResults(DATA.slice(0, 40));
