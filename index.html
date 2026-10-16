@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARIE Epigraphy Index — Pandya & Chola</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-inner">
+        <a href="#" class="logo" onclick="showHome(); return false;">
+          <span class="logo-mark">ARIE</span>
+          <span class="logo-sub">Epigraphy Index</span>
+        </a>
+        <nav>
+          <button onclick="showHome()">Search</button>
+          <button onclick="showTemples()">Temples</button>
+          <button onclick="showDynasties()">Dynasties</button>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Home / Search -->
+      <section id="view-home" class="view">
+        <div class="hero">
+          <h1>Pandya & Chola Inscriptions</h1>
+          <p>Search 4,000+ records from the Annual Reports on Indian Epigraphy</p>
+        </div>
+
+        <div class="search-panel">
+          <div class="search-row">
+            <input type="text" id="q" placeholder="Search ARE number, king, temple, remarks…" autocomplete="off">
+            <button id="searchBtn">Search</button>
+          </div>
+          <div class="filters">
+            <select id="f-dynasty"><option value="">All dynasties</option></select>
+            <select id="f-district"><option value="">All districts</option></select>
+            <select id="f-language"><option value="">All languages</option></select>
+            <select id="f-type"><option value="">All types</option><option value="stone">Stone</option><option value="copper_plate">Copper plate</option></select>
+          </div>
+        </div>
+
+        <div class="results-meta" id="resultsMeta"></div>
+        <div class="results" id="results"></div>
+      </section>
+
+      <!-- Temple page -->
+      <section id="view-temple" class="view hidden">
+        <button class="back" onclick="showHome()">← Back to search</button>
+        <div id="templeContent"></div>
+      </section>
+
+      <!-- Dynasty page -->
+      <section id="view-dynasty" class="view hidden">
+        <button class="back" onclick="showHome()">← Back to search</button>
+        <div id="dynastyContent"></div>
+      </section>
+
+      <!-- Temples list -->
+      <section id="view-temples" class="view hidden">
+        <button class="back" onclick="showHome()">← Back to search</button>
+        <h2>Temples</h2>
+        <div id="templesList" class="card-grid"></div>
+      </section>
+
+      <!-- Dynasties list -->
+      <section id="view-dynasties" class="view hidden">
+        <button class="back" onclick="showHome()">← Back to search</button>
+        <h2>Dynasties</h2>
+        <div id="dynastiesList" class="card-grid"></div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Data from DHARMA ARIE corpus · Pandya & Chola inscriptions only</p>
+    </footer>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
