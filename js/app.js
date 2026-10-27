@@ -100,7 +100,7 @@ function renderHome() {
   const featured = INDEX.temples.slice(0, 6);
   const featuredIns = DATA.inscriptions[Math.floor(Math.random() * Math.min(DATA.inscriptions.length, 20))] || DATA.inscriptions[0];
   $app().innerHTML = `
-    <section class="hero" style="background-image: linear-gradient(180deg, rgba(28,26,24,.45), rgba(28,26,24,.75)), url('images/website_header.jpg'); background-size: cover; background-position: center;">
+    <section class="hero hero-full" style="background-image: linear-gradient(180deg, rgba(28,26,24,.45), rgba(28,26,24,.75)), url('images/website_header.png');">
       <h2>Explore Ancient India<br>like Never Before</h2>
       <div class="search-wrap">
         <input type="search" id="homeSearch" placeholder="Search king, temple, place, or keyword…" autocomplete="off">
