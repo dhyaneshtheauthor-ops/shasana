@@ -59,6 +59,12 @@ header.site {
 [data-theme="light"] header.site { background: rgba(239,227,194,.9); }
 .brand { display: flex; align-items: baseline; gap: 10px; flex: 1; }
 .brand h1 { margin: 0; font-size: 1.5rem; }
+.brand h1 a {
+  color: var(--gold);
+}
+[data-theme="light"] .brand h1 a {
+  color: #1C1A18;
+}
 .brand .tag { font-size: .75rem; color: var(--muted); }
 @media (max-width: 767px) { .brand .tag { display: none; } }
 .header-logo {
