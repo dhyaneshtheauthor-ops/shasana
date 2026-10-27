@@ -115,7 +115,7 @@ function renderHome() {
   const featuredIns = DATA.inscriptions[Math.floor(Math.random() * Math.min(DATA.inscriptions.length, 20))] || DATA.inscriptions[0];
   $app().innerHTML = `
     <section class="hero hero-full" style="background-image: linear-gradient(180deg, rgba(28,26,24,.45), rgba(28,26,24,.75)), url('images/website_header.png');">
-      <h2>Explore Ancient India<br>like Never Before</h2>
+      <h2 id="heroText"></h2>
       <div class="search-wrap">
         <input type="search" id="homeSearch" placeholder="Search king, temple, place, or keyword…" autocomplete="off">
       </div>
@@ -155,6 +155,7 @@ function renderHome() {
   `;
   document.getElementById("homeSearch").addEventListener("keydown", e => {
     if (e.key === "Enter") location.hash = "#/search?q=" + encodeURIComponent(e.target.value);
+    typewriter("heroText", "Explore Ancient India like Never Before");
   });
   initMiniMap();
 }
