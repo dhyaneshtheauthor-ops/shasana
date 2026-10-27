@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shasana — Searchable database of Pandya and Chola inscriptions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Tamil:wght@400;600&family=Noto+Serif+Tamil:wght@400;600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="site">
+    <div class="brand">
+      <h1><a href="#/" style="color:inherit;text-decoration:none">Shasana</a></h1>
+      <span class="tamil">சாசனம்</span>
+      <span class="tag">Searchable database of Pandya and Chola inscriptions</span>
+    </div>
+    <nav class="top-nav">
+      <a href="#/" data-nav="home">Home</a>
+      <a href="#/map" data-nav="map">Map</a>
+      <a href="#/temples" data-nav="temples">Temples</a>
+      <a href="#/kings" data-nav="kings">Dynasty</a>
+      <a href="#/search" data-nav="search">Search</a>
+    </nav>
+    <button class="theme-btn" id="themeToggle" aria-label="Toggle theme">☀ Light</button>
+  </header>
+
+  <main id="app" class="wrap"></main>
+
+  <nav class="bottom-nav" aria-label="Primary">
+    <a href="#/" data-nav="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>Home</a>
+    <a href="#/map" data-nav="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Map</a>
+    <a href="#/temples" data-nav="temples"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M6 21V9l6-4 6 4v12M9 21v-6h6v6"/></svg>Temples</a>
+    <a href="#/kings" data-nav="kings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Kings</a>
+    <a href="#/search" data-nav="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>Search</a>
+  </nav>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
