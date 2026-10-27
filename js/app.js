@@ -128,12 +128,12 @@ function renderHome() {
     <h3 class="section-title">Browse by dynasty</h3>
     <div class="dynasty-row">
       <div class="dynasty-card pandya" onclick="location.hash='#/kings'">
-        <div class="emblem">🐟</div>
+        <div class="emblem"><img src="images/icons/pandya_emblem.png" alt="Pandya" width="48" height="48"></div>
         <h3>Pandya</h3>
         <p class="muted">${DATA.kings.length} kings recorded</p>
       </div>
       <div class="dynasty-card chola" onclick="location.hash='#/kings'">
-        <div class="emblem">🐯</div>
+        <div class="emblem"><img src="images/icons/chola_emblem.png" alt="Chola" width="48" height="48"></div>
         <h3>Chola</h3>
         <p class="muted">Coming soon</p>
       </div>
@@ -227,8 +227,7 @@ function inscCard(ins) {
 function renderKings() {
   const sorted = [...DATA.kings].sort((a,b) => (a.sort_order||0) - (b.sort_order||0));
   $app().innerHTML = `
-    <h2>Pandya Dynasty</h2>
-    <div class="timeline-scroll" id="tl">${sorted.filter(k=>k.accession_year_ce).map(k => {
+    <h2><img src="images/icons/pandya_emblem.png" alt="" width="36" height="36" style="vertical-align:middle;margin-right:8px">Pandya Dynasty</h2>    <div class="timeline-scroll" id="tl">${sorted.filter(k=>k.accession_year_ce).map(k => {
       const span = Math.max(1, (k.end_year_ce||k.accession_year_ce) - k.accession_year_ce);
       return `<div class="tl-bar" style="height:${20+Math.min(span,40)}px" title="${escapeHtml(k.king_name_standard)}" onclick="document.getElementById('k-${k.king_id}')?.scrollIntoView({behavior:'smooth'})">${span}</div>`;
     }).join("")}</div>
@@ -249,6 +248,7 @@ function kingCard(k) {
   return `<a href="#/king/${k.king_id}" id="k-${k.king_id}" class="card" style="display:block;text-decoration:none;color:inherit;margin-bottom:12px;padding:16px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div>
+        <img src="images/icons/pandya_emblem.png" alt="" width="20" height="20" style="vertical-align:middle;margin-right:6px">
         <span class="tag tag-pandya">${escapeHtml(k.dynasty_branch||"Pandya")}</span>
         <h3 style="margin:6px 0 4px">${escapeHtml(k.king_name_standard)}</h3>
         <p class="muted">${escapeHtml(years)}</p>
@@ -295,7 +295,7 @@ function renderInscription(id) {
   const kingLink = ins.king_identified_id ? `<a href="#/king/${ins.king_identified_id}">${escapeHtml(ins.king||"")}</a>` : escapeHtml(ins.king||"Unidentified");
   $app().innerHTML = `
     <p><a href="#/">← Home</a></p>
-    <span class="tag tag-pandya">Pandya</span>
+    <span class="tag tag-pandya"><img src="images/icons/pandya_emblem.png" alt="" width="16" height="16" style="vertical-align:middle;margin-right:4px">Pandya</span>
     <h2>${escapeHtml(ins.arie_no || ins.arie_id)}</h2>
     <p class="muted">${escapeHtml(ins.citation||"")}</p>
     <div class="stats">
