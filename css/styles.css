@@ -135,7 +135,11 @@ header.site {
   padding: 24px; text-align: center; cursor: pointer; transition: border-color .2s;
 }
 .dynasty-card:hover { border-color: var(--gold); }
-.dynasty-card .emblem { font-size: 2.4rem; margin-bottom: 8px; }
+.dynasty-card .emblem img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
 .dynasty-card.chola { border-top: 4px solid var(--kumkum); }
 .dynasty-card.pandya { border-top: 4px solid var(--verdigris); }
 @media (max-width: 600px) { .dynasty-row { grid-template-columns: 1fr; } }
