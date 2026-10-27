@@ -108,7 +108,7 @@ function renderHome() {
       ${sample.map(ins => inscriptionCard(ins)).join("")}
     </div>
   `;
-  typewriter("heroText", "ஸ்ரீ மதுரை மீனாட்சி சுந்தரேசுவரர்");
+  typewriter("heroText", "Explore Ancient India like Never Before!");
   initMiniMap();
   document.getElementById("homeSearch").addEventListener("keydown", e => {
     if (e.key === "Enter") location.hash = "#/search?q=" + encodeURIComponent(e.target.value);
