@@ -1,0 +1,205 @@
+/* Shasana — Estampage / Palm-leaf themes */
+:root {
+  --granite: #1C1A18;
+  --rubbing: #EDE6D8;
+  --kumkum: #A3301F;
+  --gold: #C99A3B;
+  --verdigris: #3F7D6E;
+  --bg: var(--granite);
+  --text: var(--rubbing);
+  --accent: var(--kumkum);
+  --secondary: var(--gold);
+  --card-bg: #252320;
+  --border: #3a3530;
+  --muted: #a89f90;
+  --shadow: rgba(0,0,0,.4);
+}
+
+[data-theme="light"] {
+  --bg: #EFE3C2;
+  --text: #2A2118;
+  --card-bg: #f7eed8;
+  --border: #d4c4a0;
+  --muted: #6b5d4a;
+  --shadow: rgba(42,33,24,.12);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: "Source Sans 3", "Noto Sans Tamil", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.65;
+  font-size: 1.05rem;
+  min-height: 100vh;
+  position: relative;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: .05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  z-index: 0;
+}
+.wrap { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; padding: 16px; }
+
+h1, h2, h3, .serif { font-family: "Libre Baskerville", "Noto Serif Tamil", Georgia, serif; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Header */
+header.site {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; border-bottom: 1px solid var(--border);
+  background: var(--card-bg); position: sticky; top: 0; z-index: 100;
+  gap: 16px;
+}
+.brand { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; }
+.brand h1 { margin: 0; font-size: 1.6rem; letter-spacing: .04em; }
+.brand .tag { font-size: .8rem; color: var(--muted); font-family: inherit; }
+.top-nav { display: flex; gap: 6px; }
+.top-nav a {
+  color: var(--text); text-decoration: none; padding: 8px 14px;
+  border-radius: 20px; font-size: .95rem; font-weight: 600;
+}
+.top-nav a:hover, .top-nav a.active { background: var(--accent); color: #fff; }
+.theme-btn {
+  background: transparent; border: 1px solid var(--border); color: var(--text);
+  padding: 8px 14px; border-radius: 20px; cursor: pointer; font-size: .9rem;
+  flex-shrink: 0;
+}
+.theme-btn:hover { border-color: var(--gold); }
+
+/* Hero */
+.hero { text-align: center; padding: 56px 16px 40px; }
+.hero-tamil {
+  font-family: "Noto Serif Tamil", serif;
+  font-size: clamp(1.6rem, 5.5vw, 2.6rem);
+  letter-spacing: .04em;
+  min-height: 2.6em;
+  color: var(--gold);
+}
+.search-wrap { max-width: 520px; margin: 20px auto 0; position: relative; }
+.search-wrap input {
+  width: 100%; padding: 14px 16px; border-radius: 28px;
+  border: 1px solid var(--border); background: var(--card-bg); color: var(--text);
+  font-size: 1rem;
+}
+.search-wrap input:focus { outline: 2px solid var(--gold); border-color: transparent; }
+
+/* Cards & grids */
+.grid { display: grid; gap: 14px; }
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.card {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px; box-shadow: 0 2px 8px var(--shadow);
+}
+.card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.meta { font-size: .85rem; color: var(--muted); }
+.tag {
+  display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: .75rem;
+  font-weight: 600; margin-right: 6px;
+}
+.tag-pandya { background: var(--verdigris); color: #fff; }
+.tag-chola { background: var(--kumkum); color: #fff; }
+.tag-other { background: var(--gold); color: #1C1A18; }
+
+/* Timeline */
+.timeline { display: grid; grid-template-columns: 1fr 80px 1fr; gap: 8px; align-items: start; }
+.axis { text-align: center; font-size: .75rem; color: var(--muted); padding-top: 8px; }
+.king-card {
+  background: var(--card-bg); border-left: 4px solid var(--verdigris);
+  border-radius: 6px; padding: 10px 12px; margin-bottom: 10px;
+}
+.king-card.sub { margin-left: 24px; border-left-width: 3px; opacity: .95; font-size: .92rem; }
+.king-card h4 { margin: 0 0 4px; font-size: 1rem; }
+.king-card .years { color: var(--gold); font-size: .85rem; }
+
+/* Map */
+#map { height: 420px; border-radius: 10px; border: 1px solid var(--border); }
+.map-full { height: calc(100vh - 120px); }
+.leaflet-popup-content { font-family: inherit; color: #222; }
+
+/* Filters */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.filters select, .filters input {
+  padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--card-bg); color: var(--text); font-size: .9rem;
+}
+.btn {
+  background: var(--kumkum); color: #fff; border: none; padding: 10px 16px;
+  border-radius: 6px; cursor: pointer; font-weight: 600;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+
+/* Bottom nav (mobile) */
+.bottom-nav {
+  display: none; position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--card-bg); border-top: 1px solid var(--border);
+  z-index: 200; padding: 6px 0 env(safe-area-inset-bottom);
+}
+.bottom-nav a {
+  flex: 1; text-align: center; font-size: .7rem; color: var(--muted);
+  padding: 8px 4px; text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.bottom-nav a.active { color: var(--accent); }
+.bottom-nav svg { width: 22px; height: 22px; }
+
+/* Page headers */
+.page-hero {
+  padding: 28px 0 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.page-hero h2 { margin: 0 0 6px; font-size: 2rem; }
+.page-hero .sub { color: var(--gold); font-size: 1.05rem; }
+
+/* Inscription detail */
+.insc-header { margin-bottom: 8px; }
+.insc-header h2 { font-size: 1.8rem; margin: 8px 0 4px; }
+.meta-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px; margin: 18px 0 24px; padding: 18px;
+  background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border);
+}
+.meta-strip div { font-size: .95rem; }
+.meta-strip strong { display: block; color: var(--gold); font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.remarks-box {
+  background: var(--card-bg); border-left: 4px solid var(--verdigris);
+  padding: 18px 20px; border-radius: 0 10px 10px 0; font-size: 1.08rem; line-height: 1.7;
+}
+
+/* King page */
+.king-hero { padding: 8px 0 16px; }
+.king-hero h2 { font-size: 2.1rem; margin: 6px 0; }
+.king-bio { font-size: 1.08rem; line-height: 1.75; max-width: 720px; }
+.meykirtti { font-style: italic; color: var(--gold); border-left: 3px solid var(--gold); padding-left: 14px; margin: 16px 0; }
+
+/* Temple page */
+.temple-hero h2 { font-size: 2rem; }
+.insc-count { color: var(--verdigris); font-weight: 600; }
+
+@media (max-width: 720px) {
+  .top-nav { display: none; }
+  .timeline { grid-template-columns: 1fr; }
+  .axis { display: none; }
+  .bottom-nav { display: flex; }
+  body { padding-bottom: 64px; }
+  .hero { padding: 32px 12px 24px; }
+  .hero-tamil { font-size: 1.5rem; }
+  .page-hero h2, .king-hero h2, .temple-hero h2 { font-size: 1.5rem; }
+}
+@media (min-width: 721px) {
+  .bottom-nav { display: none !important; }
+}
+
+.hidden { display: none !important; }
+.center { text-align: center; }
+.mt { margin-top: 20px; }
+.list-item { border-bottom: 1px solid var(--border); padding: 12px 0; }
+.list-item:last-child { border-bottom: none; }
