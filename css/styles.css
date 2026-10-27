@@ -94,6 +94,15 @@ header.site {
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400'%3E%3Crect fill='%2324211E' width='100%25' height='100%25'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23C99A3B' font-size='48' font-family='serif' opacity='.3'%3Eசாசனம்%3C/text%3E%3C/svg%3E") center/cover;
   border-radius: 12px; margin: 12px 0 20px; padding: 40px 20px;
 }
+.hero-full {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  border-radius: 0;
+  min-height: 70vh;
+  background-size: cover;
+  background-position: center;
+}
 .hero h2 { font-size: clamp(1.8rem, 5vw, 2.8rem); margin: 0 0 16px; color: var(--gold); }
 .search-wrap { max-width: 480px; width: 100%; margin: 12px auto; }
 .search-wrap input {
