@@ -54,6 +54,20 @@ function formatDate(raw, identified) {
 function placeholder(letter) {
   return `<div class="placeholder-img">${escapeHtml((letter||"?").charAt(0).toUpperCase())}</div>`;
 }
+function typewriter(id, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let i = 0;
+  el.textContent = "";
+  const step = () => {
+    if (i <= text.length) {
+      el.textContent = text.slice(0, i);
+      i++;
+      setTimeout(step, 45);
+    }
+  };
+  step();
+}
 
 /* Theme */
 function initTheme() {
