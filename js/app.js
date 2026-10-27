@@ -155,8 +155,8 @@ function renderHome() {
   `;
   document.getElementById("homeSearch").addEventListener("keydown", e => {
     if (e.key === "Enter") location.hash = "#/search?q=" + encodeURIComponent(e.target.value);
-    typewriter("heroText", "Explore Ancient India like Never Before");
   });
+  typewriter("heroText", "Explore Ancient India like Never Before");
   initMiniMap();
 }
 
