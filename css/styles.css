@@ -68,7 +68,7 @@ header.site {
   justify-content: center;
 }
 .header-logo img {
-  height: 42px;
+  height: 64px;
   width: auto;
   object-fit: contain;
 }
