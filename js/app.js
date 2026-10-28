@@ -355,67 +355,105 @@ function searchAll(q) {
 }
 
 /* MAP */
+let mapMarkers = [];
+let selectedMarker = null;
+
 function renderMap() {
+  const kings = DATA.kings.map(k => `<option value="${escapeHtml(k.king_id)}">${escapeHtml(k.king_name_standard)}</option>`).join("");
+  const centuries = [...new Set(DATA.inscriptions.map(i => i.century).filter(Boolean))].sort();
   $app().innerHTML = `
-    <div class="filters">
-      <button class="chip active" data-f="all">All</button>
-      <button class="chip" data-f="pandya">Pandya</button>
+    <div class="map-filters">
+      <input type="search" id="mapSearch" placeholder="Search temple name…" class="map-search">
+      <select id="mapDynasty"><option value="">All dynasties</option><option value="Pandya">Pandya</option><option value="Chola">Chola</option></select>
+      <select id="mapKing"><option value="">All kings</option>${kings}</select>
+      <select id="mapCentury"><option value="">All centuries</option>${centuries.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}</select>
     </div>
     <div class="map-layout">
       <div id="map"></div>
-      <aside class="side-panel" id="sidePanel"><p class="muted">Temples in view will appear here.</p></aside>
+      <aside class="side-panel" id="sidePanel"><p class="muted">Click a pin to see temple details.</p></aside>
     </div>
   `;
   initFullMap();
+  ["mapSearch","mapDynasty","mapKing","mapCentury"].forEach(id => {
+    document.getElementById(id).addEventListener("input", refreshMarkers);
+    document.getElementById(id).addEventListener("change", refreshMarkers);
+  });
 }
 
-function initMiniMap() {
-  if (mapInstance) { mapInstance.remove(); mapInstance = null; }
-  const el = document.getElementById("homeMap");
-  if (!el) return;
-  mapInstance = L.map(el).setView([10.5, 78.5], 6);
-  updateMapTiles();
-  addMarkers(mapInstance, 12);
-}
 function initFullMap() {
   if (mapInstance) { mapInstance.remove(); mapInstance = null; }
   mapInstance = L.map("map").setView([10.5, 78.5], 7);
   updateMapTiles();
-  addMarkers(mapInstance, 50);
-  updateSidePanel();
+  refreshMarkers();
   mapInstance.on("moveend", updateSidePanel);
 }
-function updateMapTiles() {
-  if (!mapInstance) return;
-  mapInstance.eachLayer(l => { if (l._url) mapInstance.removeLayer(l); });
-  const theme = document.documentElement.getAttribute("data-theme");
-  const style = theme === "dark" ? "dark_all" : "light_all";
-  L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/${style}/{z}/{x}/{y}.png?key=${CARTO_KEY}`, {
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
-    maxZoom: 18
-  }).addTo(mapInstance);
-}
-function addMarkers(map, limit) {
-  INDEX.temples.filter(t => t.lat && t.lng).slice(0, limit).forEach(t => {
+
+function refreshMarkers() {
+  mapMarkers.forEach(m => mapInstance.removeLayer(m));
+  mapMarkers = [];
+  const q = (document.getElementById("mapSearch")?.value || "").toLowerCase();
+  const dyn = document.getElementById("mapDynasty")?.value || "";
+  const king = document.getElementById("mapKing")?.value || "";
+  const cen = document.getElementById("mapCentury")?.value || "";
+
+  const filtered = INDEX.temples.filter(t => {
+    if (!t.lat || !t.lng) return false;
+    if (q && !(t.name + " " + t.place).toLowerCase().includes(q)) return false;
+    if (dyn && ![...t.dynasties].includes(dyn)) return false;
+    if (king && !t.inscriptions.some(i => i.king_identified_id === king)) return false;
+    if (cen && !t.inscriptions.some(i => i.century === cen)) return false;
+    return true;
+  });
+
+  filtered.forEach(t => {
     const count = t.inscriptions.length;
     const size = Math.min(56, Math.max(28, 20 + count * 2));
     const icon = L.divIcon({
       className: "",
-      html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:#3F7D6E;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${size>40?14:11}px;border:2px solid #fff">${count}</div>`,
+      html: `<div class="map-pin" style="width:${size}px;height:${size}px;font-size:${size>40?14:11}px">${count}</div>`,
       iconSize: [size, size], iconAnchor: [size/2, size/2]
     });
-    const m = L.marker([t.lat, t.lng], { icon }).addTo(map);
-    const slug = encodeURIComponent(t.name + "|" + t.place);
-    m.bindPopup(`<strong>${escapeHtml(t.name)}</strong><br>${escapeHtml(t.district)} · ${count} inscriptions<br><a href="#/temple/${slug}">View inscriptions →</a>`);
+    const m = L.marker([t.lat, t.lng], { icon }).addTo(mapInstance);
+    m.on("click", () => showTempleCard(t, m));
+    mapMarkers.push(m);
   });
+  updateSidePanel();
 }
+
+function showTempleCard(t, marker) {
+  if (selectedMarker) selectedMarker.getElement()?.querySelector(".map-pin")?.classList.remove("active");
+  selectedMarker = marker;
+  marker.getElement()?.querySelector(".map-pin")?.classList.add("active");
+
+  const slug = encodeURIComponent(t.name + "|" + t.place);
+  const loc = [t.place, t.district].filter(Boolean).join(", ");
+  const sample = t.inscriptions.slice(0, 3);
+  const img = t.image_url
+    ? `<img src="${escapeHtml(t.image_url)}" alt="" class="temple-card-img">`
+    : placeholder(t.name);
+  const panel = document.getElementById("sidePanel");
+  panel.innerHTML = `
+    <div class="temple-sidebar-card">
+      ${img}
+      <h3>${escapeHtml(t.name)}</h3>
+      <p class="muted">${escapeHtml(loc)}</p>
+      <p>${escapeHtml((t.inscriptions[0]?.remarks || "").slice(0, 140))}</p>
+      <p><strong>${t.inscriptions.length}</strong> inscriptions</p>
+      <p class="muted">Deity: ${escapeHtml(t.deity || "Not recorded")}</p>
+      <div class="sidebar-insc">${sample.map(i => `<div class="mini-insc">${escapeHtml(i.arie_no||"")} · ${escapeHtml(i.king||"")}</div>`).join("")}</div>
+      <a href="#/temple/${slug}" class="read-more">Read more →</a>
+    </div>
+  `;
+}
+
 function updateSidePanel() {
   const panel = document.getElementById("sidePanel");
-  if (!panel || !mapInstance) return;
-  const bounds = mapInstance.getBounds();
+  if (!panel || selectedMarker) return;
+  const bounds = mapInstance?.getBounds();
+  if (!bounds) return;
   const visible = INDEX.temples.filter(t => t.lat && t.lng && bounds.contains([t.lat, t.lng]));
   panel.innerHTML = visible.length
-    ? visible.map(t => `<div style="padding:8px 0;border-bottom:1px solid var(--border)"><a href="#/temple/${encodeURIComponent(t.name+'|'+t.place)}"><strong>${escapeHtml(t.name)}</strong></a><br><span class="muted">${escapeHtml(t.district)} · ${t.inscriptions.length}</span></div>`).join("")
+    ? `<p class="muted">${visible.length} temples in view. Click a pin for details.</p>`
     : "<p class='muted'>No temples in view.</p>";
 }
 
