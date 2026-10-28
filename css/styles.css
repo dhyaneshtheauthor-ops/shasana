@@ -277,18 +277,26 @@ header.site {
   display: flex; align-items: center; justify-content: center;
   font-size: 3rem; color: var(--gold); font-family: "Libre Baskerville", serif;
 }
+.map-filters {
+  position: relative;
+  z-index: 400;
+}
 .search-suggest {
   position: absolute;
   top: 100%;
   left: 0;
-  right: 0;
-  z-index: 300;
+  z-index: 500;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 10px;
   max-height: 240px;
   overflow-y: auto;
-  box-shadow: 0 6px 20px rgba(0,0,0,.3);
+  box-shadow: 0 6px 20px rgba(0,0,0,.4);
+  min-width: 280px;
+}
+#map {
+  position: relative;
+  z-index: 1;
 }
 .suggest-item {
   padding: 10px 14px;
@@ -304,3 +312,4 @@ header.site {
   font-weight: 600;
   margin-right: 6px;
 }
+
