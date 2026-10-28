@@ -17,8 +17,6 @@ async function loadData() {
   buildIndexes();
 }
 
-const INDEX = { byKing: {}, temples: [] };
-
 function buildIndexes() {
   INDEX.byKing = {};
   DATA.inscriptions.forEach(ins => {
@@ -27,28 +25,31 @@ function buildIndexes() {
     INDEX.byKing[kid].push(ins);
   });
 
-  const byId = new Map(DATA.temples.map(t => [t.temple_id, {
-    temple_id: t.temple_id,
-    name: t.display_name || t.iast_name || "Temple",
-    place: t.temple_place || "",
-    district: titleCase(t.temple_district || ""),
-    lat: t.latitude,
-    lng: t.longitude,
-    deity: t.temple_deity || "",
-    bio: t.temple_short_bio || "",
-    image_url: t.temple_image || "",
-    popularity: t.popularity || "",
-    inscriptions: [],
-    dynasties: new Set()
-  }]));
+  const byId = new Map();
+  DATA.temples.forEach(t => {
+    byId.set(t.temple_id, {
+      temple_id: t.temple_id,
+      name: t.display_name || "Temple",
+      place: t.temple_place || "",
+      district: titleCase(t.temple_district || ""),
+      lat: t.latitude || null,
+      lng: t.longitude || null,
+      deity: t.temple_deity || "",
+      bio: t.temple_short_bio || "",
+      image_url: t.temple_image || "",
+      popularity: t.popularity || "",
+      inscriptions: [],
+      dynasties: new Set()
+    });
+  });
 
   DATA.inscriptions.forEach(ins => {
     if (!ins.temple_id || !byId.has(ins.temple_id)) return;
     const t = byId.get(ins.temple_id);
+    // Only take the wall/pillar location from ARIE; everything else comes from temples.json
+    ins._exact_location = ins.location_within_temple || "";
     t.inscriptions.push(ins);
     if (ins.dynasty_normalized) t.dynasties.add(ins.dynasty_normalized);
-    if (!t.lat && ins.latitude) t.lat = ins.latitude;
-    if (!t.lng && ins.longitude) t.lng = ins.longitude;
   });
 
   INDEX.temples = Array.from(byId.values())
@@ -260,7 +261,7 @@ function inscCard(ins) {
     <span class="muted" style="margin-left:8px">${formatDate(ins.date_raw, ins.date_identified)}</span>
     <h4 style="margin:8px 0 4px">${ins.king_identified_id ? `<a href="#/king/${ins.king_identified_id}">${escapeHtml(ins.king||"")}</a>` : escapeHtml(ins.king||"Unidentified")}</h4>
     <p class="muted">${escapeHtml((ins.remarks||"").slice(0,160))}</p>
-    ${ins.location_within_temple ? `<p class="muted">${escapeHtml(ins.location_within_temple)}</p>` : ""}
+    ${ins._exact_location ? `<p class="muted">${escapeHtml(ins._exact_location)}</p>` : ""}
     <a href="#/inscription/${encodeURIComponent(ins.arie_id)}">View →</a>
   </div>`;
 }
