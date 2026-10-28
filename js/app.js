@@ -194,8 +194,11 @@ function templeCard(t) {
   const slug = encodeURIComponent(t.name + "|" + t.place);
   const letter = (t.name || "?").charAt(0);
   const dots = [...t.dynasties].map(d => `<span class="dot dot-${d.toLowerCase()}"></span>`).join("");
+  const img = t.image_url
+    ? `<img src="${escapeHtml(t.image_url)}" alt="" class="card-img" loading="lazy">`
+    : placeholder(letter);
   return `<a href="#/temple/${slug}" class="card temple-card" style="text-decoration:none;color:inherit">
-    <div class="overlay">${placeholder(letter)}<h3>${escapeHtml(t.name)}</h3></div>
+    <div class="overlay">${img}<h3>${escapeHtml(t.name)}</h3></div>
     <div class="card-body">
       <span class="muted">${escapeHtml(t.place)}${t.district?" · "+escapeHtml(t.district):""}</span>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
@@ -207,34 +210,32 @@ function templeCard(t) {
 }
 
 /* TEMPLES */
-function renderTemples() {
+function renderTemple(key) {
+  const [name, place] = decodeURIComponent(key).split("|");
+  const t = INDEX.temples.find(x => x.name === name && x.place === (place||""));
+  if (!t) { $app().innerHTML = "<p>Temple not found.</p>"; return; }
+  const dates = t.inscriptions.map(i => i.date_identified).filter(Boolean);
+  const heroImg = t.image_url
+    ? `<img src="${escapeHtml(t.image_url)}" alt="" style="width:100%;max-height:280px;object-fit:cover;border-radius:12px;margin-bottom:12px">`
+    : "";
   $app().innerHTML = `
-    <h2>Temples</h2>
-    <div class="filters">
-      <input type="search" id="tSearch" placeholder="Search…" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text)">
-      <select id="tSort" style="padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text)">
-        <option value="popularity">Popularity</option>
-        <option value="count">Most inscriptions</option>
-        <option value="az">A to Z</option>
-      </select>
+    <p><a href="#/temples">← Temples</a></p>
+    <div class="hero" style="min-height:180px">
+      ${heroImg}
+      <h2>${escapeHtml(t.name)}</h2>
+      <p class="muted">${escapeHtml(t.place)}${t.district ? " · " + escapeHtml(t.district) : ""}</p>
+      ${t.deity ? `<p><strong>Deity:</strong> ${escapeHtml(t.deity)}</p>` : ""}
+      ${t.bio ? `<p style="max-width:720px;margin:8px auto">${escapeHtml(t.bio)}</p>` : ""}
     </div>
-    <div class="temple-grid" id="templeGrid">${INDEX.temples.map(t => templeCard(t)).join("")}</div>
+    <div class="stats">
+      <div class="stat"><div class="num">${t.inscriptions.length}</div><div class="lbl">Inscriptions</div></div>
+      <div class="stat"><div class="num">${dates.length ? dates[0] : "—"}</div><div class="lbl">Earliest</div></div>
+      <div class="stat"><div class="num">${dates.length ? dates[dates.length-1] : "—"}</div><div class="lbl">Latest</div></div>
+      <div class="stat"><div class="num">${new Set(t.inscriptions.map(i=>i.king_identified_id).filter(Boolean)).size}</div><div class="lbl">Kings</div></div>
+    </div>
+    <h3 class="section-title">Inscriptions</h3>
+    ${t.inscriptions.map(ins => inscCard(ins)).join("")}
   `;
-  const grid = document.getElementById("templeGrid");
-  const search = document.getElementById("tSearch");
-  const sort = document.getElementById("tSort");
-  function update() {
-    let list = [...INDEX.temples];
-    const q = search.value.toLowerCase();
-    if (q) list = list.filter(t => templeMatches(t, q));
-    if (sort.value === "az") list.sort((a,b) => a.name.localeCompare(b.name));
-    else if (sort.value === "count") list.sort((a,b) => b.inscriptions.length - a.inscriptions.length);
-    else list.sort(byPopularity);
-    grid.innerHTML = list.map(t => templeCard(t)).join("");
-  }
-  search.addEventListener("input", update);
-  sort.addEventListener("change", update);
-  update();
 }
 
 function byPopularity(a, b) {
