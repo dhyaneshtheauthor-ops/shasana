@@ -27,7 +27,21 @@ function buildIndexes() {
     INDEX.byKing[kid].push(ins);
   });
 
-  const byId = new Map(DATA.temples.map(t => [t.temple_id, { ...t, inscriptions: [], dynasties: new Set() }]));
+  const byId = new Map(DATA.temples.map(t => [t.temple_id, {
+    temple_id: t.temple_id,
+    name: t.display_name || t.iast_name || "Temple",
+    place: t.temple_place || "",
+    district: titleCase(t.temple_district || ""),
+    lat: t.latitude,
+    lng: t.longitude,
+    deity: t.temple_deity || "",
+    bio: t.temple_short_bio || "",
+    image_url: t.temple_image || "",
+    popularity: t.popularity || "",
+    inscriptions: [],
+    dynasties: new Set()
+  }]));
+
   DATA.inscriptions.forEach(ins => {
     if (!ins.temple_id || !byId.has(ins.temple_id)) return;
     const t = byId.get(ins.temple_id);
@@ -36,6 +50,7 @@ function buildIndexes() {
     if (!t.lat && ins.latitude) t.lat = ins.latitude;
     if (!t.lng && ins.longitude) t.lng = ins.longitude;
   });
+
   INDEX.temples = Array.from(byId.values())
     .filter(t => t.inscriptions.length > 0)
     .sort((a, b) => b.inscriptions.length - a.inscriptions.length);
