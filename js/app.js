@@ -563,7 +563,7 @@ function showTempleCard(t, marker) {
       ${img}
       <h3>${escapeHtml(t.name)}</h3>
       <p class="muted">${escapeHtml(loc)}</p>
-      <p>${escapeHtml((filtered[0]?.remarks || "").slice(0, 140))}</p>
+      ${t.bio ? `<p>${escapeHtml(t.bio)}</p>` : ""}      
       <p><strong>${filtered.length}</strong> inscriptions${currentFilters.king || currentFilters.cen || currentFilters.dyn ? " (filtered)" : ""}</p>
       <p class="muted">Deity: ${escapeHtml(t.deity || "Not recorded")}</p>
       <div>${sample.map(i => `<div class="mini-insc">${escapeHtml(i.arie_no||"")} · ${escapeHtml(i.king||"")}</div>`).join("")}</div>
