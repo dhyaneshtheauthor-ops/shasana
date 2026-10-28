@@ -369,15 +369,27 @@ function searchAll(q) {
 /* MAP */
 let mapMarkers = [];
 let selectedMarker = null;
+let currentFilters = { q: "", dyn: "", king: "", cen: "" };
+
+function getFilteredInscriptions(t) {
+  return t.inscriptions.filter(i => {
+    if (currentFilters.dyn && i.dynasty_normalized !== currentFilters.dyn) return false;
+    if (currentFilters.king && i.king_identified_id !== currentFilters.king) return false;
+    if (currentFilters.cen && !expandCenturies(i.century).includes(currentFilters.cen)) return false;
+    return true;
+  });
+}
 
 function renderMap() {
-  const kings = DATA.kings.map(k => `<option value="${escapeHtml(k.king_id)}">${escapeHtml(k.king_name_standard)}</option>`).join("");
+  const kingsWithInsc = DATA.kings.filter(k => (INDEX.byKing[k.king_id] || []).length > 0);
+  const kings = kingsWithInsc.map(k => `<option value="${escapeHtml(k.king_id)}">${escapeHtml(k.king_name_standard)}</option>`).join("");
   const centurySet = new Set();
   DATA.inscriptions.forEach(i => expandCenturies(i.century).forEach(c => centurySet.add(c)));
   const centuries = [...centurySet].sort();
   $app().innerHTML = `
-    <div class="map-filters">
-      <input type="search" id="mapSearch" placeholder="Search temple name…" class="map-search">
+    <div class="map-filters" style="position:relative">
+      <input type="search" id="mapSearch" placeholder="Search temple, king, place, district…" class="map-search" autocomplete="off">
+      <div id="searchSuggest" class="search-suggest" style="display:none"></div>
       <select id="mapDynasty"><option value="">All dynasties</option><option value="Pandya">Pandya</option><option value="Chola">Chola</option></select>
       <select id="mapKing"><option value="">All kings</option>${kings}</select>
       <select id="mapCentury"><option value="">All centuries</option>${centuries.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}</select>
@@ -388,10 +400,48 @@ function renderMap() {
     </div>
   `;
   initFullMap();
-  ["mapSearch","mapDynasty","mapKing","mapCentury"].forEach(id => {
-    document.getElementById(id).addEventListener("input", refreshMarkers);
-    document.getElementById(id).addEventListener("change", refreshMarkers);
+  document.getElementById("mapSearch").addEventListener("input", onSearchInput);
+  document.getElementById("mapDynasty").addEventListener("change", applyFilters);
+  document.getElementById("mapKing").addEventListener("change", applyFilters);
+  document.getElementById("mapCentury").addEventListener("change", applyFilters);
+}
+
+function onSearchInput(e) {
+  const q = e.target.value.toLowerCase().trim();
+  currentFilters.q = q;
+  showSuggestions(q);
+  refreshMarkers();
+}
+
+function showSuggestions(q) {
+  const box = document.getElementById("searchSuggest");
+  if (!q) { box.style.display = "none"; return; }
+  const results = [];
+  INDEX.temples.forEach(t => {
+    if ((t.name + " " + t.place + " " + t.district).toLowerCase().includes(q))
+      results.push({ type: "Temple", label: t.name + (t.place ? " · " + t.place : ""), action: () => { document.getElementById("mapSearch").value = t.name; currentFilters.q = t.name.toLowerCase(); box.style.display = "none"; refreshMarkers(); } });
   });
+  DATA.kings.forEach(k => {
+    if ((INDEX.byKing[k.king_id] || []).length && (k.king_name_standard || "").toLowerCase().includes(q))
+      results.push({ type: "King", label: k.king_name_standard, action: () => { document.getElementById("mapKing").value = k.king_id; applyFilters(); box.style.display = "none"; } });
+  });
+  const districts = new Set(INDEX.temples.map(t => t.district).filter(Boolean));
+  districts.forEach(d => {
+    if (d.toLowerCase().includes(q))
+      results.push({ type: "District", label: d, action: () => { document.getElementById("mapSearch").value = d; currentFilters.q = d.toLowerCase(); box.style.display = "none"; refreshMarkers(); } });
+  });
+  box.innerHTML = results.slice(0, 8).map((r, i) => `<div class="suggest-item" data-i="${i}"><span class="suggest-type">${r.type}</span> ${escapeHtml(r.label)}</div>`).join("") || `<div class="suggest-item muted">No matches</div>`;
+  box.style.display = "block";
+  box.querySelectorAll(".suggest-item").forEach((el, i) => {
+    if (results[i]) el.addEventListener("click", results[i].action);
+  });
+}
+
+function applyFilters() {
+  currentFilters.dyn = document.getElementById("mapDynasty").value;
+  currentFilters.king = document.getElementById("mapKing").value;
+  currentFilters.cen = document.getElementById("mapCentury").value;
+  refreshMarkers();
 }
 
 function initMiniMap() {
@@ -408,7 +458,11 @@ function initMiniMap() {
       html: `<div class="map-pin" style="width:${size}px;height:${size}px">${count}</div>`,
       iconSize: [size, size], iconAnchor: [size/2, size/2]
     });
-    L.marker([t.lat, t.lng], { icon }).addTo(mapInstance);
+    const m = L.marker([t.lat, t.lng], { icon }).addTo(mapInstance);
+    m.on("click", () => {
+      location.hash = "#/map";
+      setTimeout(() => showTempleCard(t, null), 300);
+    });
   });
 }
 
@@ -424,20 +478,12 @@ function refreshMarkers() {
   if (!mapInstance) return;
   mapMarkers.forEach(m => mapInstance.removeLayer(m));
   mapMarkers = [];
-  const q = (document.getElementById("mapSearch")?.value || "").toLowerCase();
-  const dyn = document.getElementById("mapDynasty")?.value || "";
-  const king = document.getElementById("mapKing")?.value || "";
-  const cen = document.getElementById("mapCentury")?.value || "";
-
-  INDEX.temples.filter(t => {
-    if (!t.lat || !t.lng) return false;
-    if (q && !(t.name + " " + t.place).toLowerCase().includes(q)) return false;
-    if (dyn && ![...t.dynasties].includes(dyn)) return false;
-    if (king && !t.inscriptions.some(i => i.king_identified_id === king)) return false;
-    if (cen && !t.inscriptions.some(i => expandCenturies(i.century).includes(cen))) return false;
-    return true;
-  }).forEach(t => {
-    const count = t.inscriptions.length;
+  INDEX.temples.forEach(t => {
+    if (!t.lat || !t.lng) return;
+    if (currentFilters.q && !(t.name + " " + t.place + " " + t.district).toLowerCase().includes(currentFilters.q)) return;
+    const filtered = getFilteredInscriptions(t);
+    if (filtered.length === 0) return;
+    const count = filtered.length;
     const size = Math.min(56, Math.max(28, 20 + count * 2));
     const icon = L.divIcon({
       className: "",
@@ -452,20 +498,23 @@ function refreshMarkers() {
 }
 
 function showTempleCard(t, marker) {
-  if (selectedMarker) selectedMarker.getElement()?.querySelector(".map-pin")?.classList.remove("active");
+  if (selectedMarker && selectedMarker.getElement) selectedMarker.getElement()?.querySelector(".map-pin")?.classList.remove("active");
   selectedMarker = marker;
-  marker.getElement()?.querySelector(".map-pin")?.classList.add("active");
+  if (marker && marker.getElement) marker.getElement()?.querySelector(".map-pin")?.classList.add("active");
+  const filtered = getFilteredInscriptions(t);
   const slug = encodeURIComponent(t.name + "|" + t.place);
   const loc = [t.place, t.district].filter(Boolean).join(", ");
-  const sample = t.inscriptions.slice(0, 3);
+  const sample = filtered.slice(0, 4);
   const img = t.image_url ? `<img src="${escapeHtml(t.image_url)}" alt="" class="temple-card-img">` : placeholder(t.name);
-  document.getElementById("sidePanel").innerHTML = `
+  const panel = document.getElementById("sidePanel");
+  if (!panel) return;
+  panel.innerHTML = `
     <div class="temple-sidebar-card">
       ${img}
       <h3>${escapeHtml(t.name)}</h3>
       <p class="muted">${escapeHtml(loc)}</p>
-      <p>${escapeHtml((t.inscriptions[0]?.remarks || "").slice(0, 140))}</p>
-      <p><strong>${t.inscriptions.length}</strong> inscriptions</p>
+      <p>${escapeHtml((filtered[0]?.remarks || "").slice(0, 140))}</p>
+      <p><strong>${filtered.length}</strong> inscriptions${currentFilters.king || currentFilters.cen || currentFilters.dyn ? " (filtered)" : ""}</p>
       <p class="muted">Deity: ${escapeHtml(t.deity || "Not recorded")}</p>
       <div>${sample.map(i => `<div class="mini-insc">${escapeHtml(i.arie_no||"")} · ${escapeHtml(i.king||"")}</div>`).join("")}</div>
       <a href="#/temple/${slug}" class="read-more">Read more →</a>
@@ -478,7 +527,7 @@ function updateSidePanel() {
   if (!panel || selectedMarker) return;
   const bounds = mapInstance?.getBounds();
   if (!bounds) return;
-  const visible = INDEX.temples.filter(t => t.lat && t.lng && bounds.contains([t.lat, t.lng]));
+  const visible = INDEX.temples.filter(t => t.lat && t.lng && bounds.contains([t.lat, t.lng]) && getFilteredInscriptions(t).length);
   panel.innerHTML = visible.length
     ? `<p class="muted">${visible.length} temples in view. Click a pin for details.</p>`
     : "<p class='muted'>No temples in view.</p>";
