@@ -244,18 +244,17 @@ function renderTemple(key) {
   const t = INDEX.temples.find(x => x.name === name && x.place === (place||""));
   if (!t) { $app().innerHTML = "<p>Temple not found.</p>"; return; }
   const dates = t.inscriptions.map(i => i.date_identified).filter(Boolean);
-  const heroImg = t.image_url
-    ? `<img src="${escapeHtml(t.image_url)}" alt="" style="width:100%;max-height:280px;object-fit:cover;border-radius:12px;margin-bottom:12px">`
-    : "";
+  const banner = t.image_url
+    ? `<div class="temple-banner" style="background-image:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.7)),url('${escapeHtml(t.image_url)}')">
+         <h2>${escapeHtml(t.name)}</h2>
+       </div>`
+    : `<h2 style="margin:16px 0 4px">${escapeHtml(t.name)}</h2>`;
   $app().innerHTML = `
     <p><a href="#/temples">← Temples</a></p>
-    <div class="hero" style="min-height:180px">
-      ${heroImg}
-      <h2>${escapeHtml(t.name)}</h2>
-      <p class="muted">${escapeHtml(t.place)}${t.district ? " · " + escapeHtml(t.district) : ""}</p>
-      ${t.deity ? `<p><strong>Deity:</strong> ${escapeHtml(t.deity)}</p>` : ""}
-      ${t.bio ? `<p style="max-width:720px;margin:8px auto">${escapeHtml(t.bio)}</p>` : ""}
-    </div>
+    ${banner}
+    <p class="muted" style="margin:8px 0">${escapeHtml(t.place)}${t.district ? " · " + escapeHtml(t.district) : ""}</p>
+    ${t.deity ? `<p><strong>Deity:</strong> ${escapeHtml(t.deity)}</p>` : ""}
+    ${t.bio ? `<p style="max-width:720px;margin:8px 0 16px">${escapeHtml(t.bio)}</p>` : ""}
     <div class="stats">
       <div class="stat"><div class="num">${t.inscriptions.length}</div><div class="lbl">Inscriptions</div></div>
       <div class="stat"><div class="num">${dates.length ? dates[0] : "—"}</div><div class="lbl">Earliest</div></div>
