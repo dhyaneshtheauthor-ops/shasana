@@ -31,6 +31,7 @@ function buildIndexes() {
     byId.set(t.temple_id, {
       temple_id: t.temple_id,
       name: t.display_name || "Temple",
+      name_variants: t.name_variants || "",
       place: t.temple_place || "",
       district: titleCase(t.temple_district || ""),
       lat: t.latitude || null,
@@ -212,6 +213,7 @@ function renderTemples() {
     <div class="filters">
       <input type="search" id="tSearch" placeholder="Search…" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text)">
       <select id="tSort" style="padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text)">
+        <option value="popularity">Popularity</option>
         <option value="count">Most inscriptions</option>
         <option value="az">A to Z</option>
       </select>
@@ -224,13 +226,28 @@ function renderTemples() {
   function update() {
     let list = [...INDEX.temples];
     const q = search.value.toLowerCase();
-    if (q) list = list.filter(t => (t.name+" "+t.place+" "+t.district).toLowerCase().includes(q));
+    if (q) list = list.filter(t => templeMatches(t, q));
     if (sort.value === "az") list.sort((a,b) => a.name.localeCompare(b.name));
-    else list.sort((a,b) => b.inscriptions.length - a.inscriptions.length);
+    else if (sort.value === "count") list.sort((a,b) => b.inscriptions.length - a.inscriptions.length);
+    else list.sort(byPopularity);
     grid.innerHTML = list.map(t => templeCard(t)).join("");
   }
   search.addEventListener("input", update);
   sort.addEventListener("change", update);
+  update();
+}
+
+function byPopularity(a, b) {
+  const rank = { high: 3, medium: 2, low: 1, "": 0 };
+  const ra = rank[(a.popularity||"").toLowerCase()] || 0;
+  const rb = rank[(b.popularity||"").toLowerCase()] || 0;
+  if (rb !== ra) return rb - ra;
+  return b.inscriptions.length - a.inscriptions.length;
+}
+
+function templeMatches(t, q) {
+  const blob = [t.name, t.name_variants, t.place, t.district, t.deity].join(" ").toLowerCase();
+  return blob.includes(q);
 }
 
 function renderTemple(key) {
@@ -240,14 +257,16 @@ function renderTemple(key) {
   const dates = t.inscriptions.map(i => i.date_identified).filter(Boolean);
   $app().innerHTML = `
     <p><a href="#/temples">← Temples</a></p>
-    <div class="hero" style="min-height:220px">
+    <div class="hero" style="min-height:180px">
       <h2>${escapeHtml(t.name)}</h2>
-      <p class="muted">${escapeHtml(t.place)} · ${escapeHtml(t.district)}</p>
+      <p class="muted">${escapeHtml(t.place)}${t.district ? " · " + escapeHtml(t.district) : ""}</p>
+      ${t.deity ? `<p><strong>Deity:</strong> ${escapeHtml(t.deity)}</p>` : ""}
+      ${t.bio ? `<p style="max-width:720px;margin:8px auto">${escapeHtml(t.bio)}</p>` : ""}
     </div>
     <div class="stats">
       <div class="stat"><div class="num">${t.inscriptions.length}</div><div class="lbl">Inscriptions</div></div>
-      <div class="stat"><div class="num">${dates.length?dates[0]:"—"}</div><div class="lbl">Earliest</div></div>
-      <div class="stat"><div class="num">${dates.length?dates[dates.length-1]:"—"}</div><div class="lbl">Latest</div></div>
+      <div class="stat"><div class="num">${dates.length ? dates[0] : "—"}</div><div class="lbl">Earliest</div></div>
+      <div class="stat"><div class="num">${dates.length ? dates[dates.length-1] : "—"}</div><div class="lbl">Latest</div></div>
       <div class="stat"><div class="num">${new Set(t.inscriptions.map(i=>i.king_identified_id).filter(Boolean)).size}</div><div class="lbl">Kings</div></div>
     </div>
     <h3 class="section-title">Inscriptions</h3>
@@ -373,6 +392,13 @@ function renderSearch(qs) {
 function searchAll(q) {
   const s = q.toLowerCase();
   const out = [];
+  const seenTemples = new Set();
+  INDEX.temples.forEach(t => {
+    if (templeMatches(t, s)) {
+      out.push({ html: templeCard(t) });
+      seenTemples.add(t.temple_id);
+    }
+  });
   DATA.inscriptions.forEach(ins => {
     const blob = [ins.king, ins.temple, ins.temple_place, ins.temple_district, ins.remarks, ins.keywords, ins.arie_no].join(" ").toLowerCase();
     if (blob.includes(s)) out.push({ html: inscCard(ins) });
@@ -442,8 +468,8 @@ function showSuggestions(q) {
   if (!q) { box.style.display = "none"; return; }
   const results = [];
   INDEX.temples.forEach(t => {
-    if ((t.name + " " + t.place + " " + t.district).toLowerCase().includes(q))
-      results.push({ type: "Temple", label: t.name + (t.place ? " · " + t.place : ""), action: () => { document.getElementById("mapSearch").value = t.name; currentFilters.q = t.name.toLowerCase(); box.style.display = "none"; refreshMarkers(); } });
+  if (templeMatches(t, q))
+    results.push({ type: "Temple", label: t.name + (t.place ? " · " + t.place : ""), action: () => { document.getElementById("mapSearch").value = t.name; currentFilters.q = t.name.toLowerCase(); box.style.display = "none"; refreshMarkers(); } });
   });
   DATA.kings.forEach(k => {
     if ((INDEX.byKing[k.king_id] || []).length && (k.king_name_standard || "").toLowerCase().includes(q))
@@ -504,7 +530,7 @@ function refreshMarkers() {
   mapMarkers = [];
   INDEX.temples.forEach(t => {
     if (!t.lat || !t.lng) return;
-    if (currentFilters.q && !(t.name + " " + t.place + " " + t.district).toLowerCase().includes(currentFilters.q)) return;
+    if (currentFilters.q && !templeMatches(t, currentFilters.q)) return;
     const filtered = getFilteredInscriptions(t);
     if (filtered.length === 0) return;
     const count = filtered.length;
