@@ -46,6 +46,18 @@ function escapeHtml(s) {
   if (s == null) return "";
   return String(s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
 }
+function expandCenturies(raw) {
+  if (!raw) return [];
+  const s = String(raw).toLowerCase();
+  const nums = [...s.matchAll(/(\d+)(?:st|nd|rd|th)?/g)].map(m => parseInt(m[1], 10));
+  if (nums.length >= 2) {
+    const out = [];
+    for (let n = Math.min(...nums); n <= Math.max(...nums); n++) out.push(n + "th century");
+    return out;
+  }
+  if (nums.length === 1) return [nums[0] + "th century"];
+  return [raw];
+}
 function formatDate(raw, identified) {
   if (identified) return escapeHtml(identified);
   if (!raw || raw === "…" || raw === "...") return "Unidentified Date";
@@ -360,7 +372,9 @@ let selectedMarker = null;
 
 function renderMap() {
   const kings = DATA.kings.map(k => `<option value="${escapeHtml(k.king_id)}">${escapeHtml(k.king_name_standard)}</option>`).join("");
-  const centuries = [...new Set(DATA.inscriptions.map(i => i.century).filter(Boolean))].sort();
+  const centurySet = new Set();
+  DATA.inscriptions.forEach(i => expandCenturies(i.century).forEach(c => centurySet.add(c)));
+  const centuries = [...centurySet].sort();
   $app().innerHTML = `
     <div class="map-filters">
       <input type="search" id="mapSearch" placeholder="Search temple name…" class="map-search">
@@ -380,6 +394,24 @@ function renderMap() {
   });
 }
 
+function initMiniMap() {
+  if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+  const el = document.getElementById("homeMap");
+  if (!el) return;
+  mapInstance = L.map(el).setView([10.5, 78.5], 6);
+  updateMapTiles();
+  INDEX.temples.filter(t => t.lat && t.lng).slice(0, 12).forEach(t => {
+    const count = t.inscriptions.length;
+    const size = Math.min(48, Math.max(24, 18 + count * 2));
+    const icon = L.divIcon({
+      className: "",
+      html: `<div class="map-pin" style="width:${size}px;height:${size}px">${count}</div>`,
+      iconSize: [size, size], iconAnchor: [size/2, size/2]
+    });
+    L.marker([t.lat, t.lng], { icon }).addTo(mapInstance);
+  });
+}
+
 function initFullMap() {
   if (mapInstance) { mapInstance.remove(); mapInstance = null; }
   mapInstance = L.map("map").setView([10.5, 78.5], 7);
@@ -389,6 +421,7 @@ function initFullMap() {
 }
 
 function refreshMarkers() {
+  if (!mapInstance) return;
   mapMarkers.forEach(m => mapInstance.removeLayer(m));
   mapMarkers = [];
   const q = (document.getElementById("mapSearch")?.value || "").toLowerCase();
@@ -396,21 +429,19 @@ function refreshMarkers() {
   const king = document.getElementById("mapKing")?.value || "";
   const cen = document.getElementById("mapCentury")?.value || "";
 
-  const filtered = INDEX.temples.filter(t => {
+  INDEX.temples.filter(t => {
     if (!t.lat || !t.lng) return false;
     if (q && !(t.name + " " + t.place).toLowerCase().includes(q)) return false;
     if (dyn && ![...t.dynasties].includes(dyn)) return false;
     if (king && !t.inscriptions.some(i => i.king_identified_id === king)) return false;
-    if (cen && !t.inscriptions.some(i => i.century === cen)) return false;
+    if (cen && !t.inscriptions.some(i => expandCenturies(i.century).includes(cen))) return false;
     return true;
-  });
-
-  filtered.forEach(t => {
+  }).forEach(t => {
     const count = t.inscriptions.length;
     const size = Math.min(56, Math.max(28, 20 + count * 2));
     const icon = L.divIcon({
       className: "",
-      html: `<div class="map-pin" style="width:${size}px;height:${size}px;font-size:${size>40?14:11}px">${count}</div>`,
+      html: `<div class="map-pin" style="width:${size}px;height:${size}px">${count}</div>`,
       iconSize: [size, size], iconAnchor: [size/2, size/2]
     });
     const m = L.marker([t.lat, t.lng], { icon }).addTo(mapInstance);
@@ -424,15 +455,11 @@ function showTempleCard(t, marker) {
   if (selectedMarker) selectedMarker.getElement()?.querySelector(".map-pin")?.classList.remove("active");
   selectedMarker = marker;
   marker.getElement()?.querySelector(".map-pin")?.classList.add("active");
-
   const slug = encodeURIComponent(t.name + "|" + t.place);
   const loc = [t.place, t.district].filter(Boolean).join(", ");
   const sample = t.inscriptions.slice(0, 3);
-  const img = t.image_url
-    ? `<img src="${escapeHtml(t.image_url)}" alt="" class="temple-card-img">`
-    : placeholder(t.name);
-  const panel = document.getElementById("sidePanel");
-  panel.innerHTML = `
+  const img = t.image_url ? `<img src="${escapeHtml(t.image_url)}" alt="" class="temple-card-img">` : placeholder(t.name);
+  document.getElementById("sidePanel").innerHTML = `
     <div class="temple-sidebar-card">
       ${img}
       <h3>${escapeHtml(t.name)}</h3>
@@ -440,7 +467,7 @@ function showTempleCard(t, marker) {
       <p>${escapeHtml((t.inscriptions[0]?.remarks || "").slice(0, 140))}</p>
       <p><strong>${t.inscriptions.length}</strong> inscriptions</p>
       <p class="muted">Deity: ${escapeHtml(t.deity || "Not recorded")}</p>
-      <div class="sidebar-insc">${sample.map(i => `<div class="mini-insc">${escapeHtml(i.arie_no||"")} · ${escapeHtml(i.king||"")}</div>`).join("")}</div>
+      <div>${sample.map(i => `<div class="mini-insc">${escapeHtml(i.arie_no||"")} · ${escapeHtml(i.king||"")}</div>`).join("")}</div>
       <a href="#/temple/${slug}" class="read-more">Read more →</a>
     </div>
   `;
@@ -455,6 +482,17 @@ function updateSidePanel() {
   panel.innerHTML = visible.length
     ? `<p class="muted">${visible.length} temples in view. Click a pin for details.</p>`
     : "<p class='muted'>No temples in view.</p>";
+}
+
+function updateMapTiles() {
+  if (!mapInstance) return;
+  mapInstance.eachLayer(l => { if (l._url) mapInstance.removeLayer(l); });
+  const theme = document.documentElement.getAttribute("data-theme");
+  const style = theme === "dark" ? "dark_all" : "light_all";
+  L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/${style}/{z}/{x}/{y}.png?key=${CARTO_KEY}`, {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    maxZoom: 18
+  }).addTo(mapInstance);
 }
 
 /* Boot */
