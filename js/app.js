@@ -409,6 +409,13 @@ function renderMap() {
 function onSearchInput(e) {
   const q = e.target.value.toLowerCase().trim();
   currentFilters.q = q;
+  // Clear other filters when a new search is typed
+  currentFilters.dyn = "";
+  currentFilters.king = "";
+  currentFilters.cen = "";
+  document.getElementById("mapDynasty").value = "";
+  document.getElementById("mapKing").value = "";
+  document.getElementById("mapCentury").value = "";
   showSuggestions(q);
   refreshMarkers();
 }
