@@ -1,17 +1,19 @@
 /* Shasana — redesigned client app */
-const DATA = { inscriptions: [], kings: [] };
+const DATA = { inscriptions: [], kings: [], temples: [] };
 let mapInstance = null;
 const CARTO_KEY = "cb1_4vlf_1_e392d35f157b6850d4b0be27";
 
 const $app = () => document.getElementById("app");
 
 async function loadData() {
-  const [arie, kings] = await Promise.all([
-    fetch("data/arie_1918-1919_pandya.json").then(r => r.json()),
-    fetch("data/kings_pandya.json").then(r => r.json())
+  const [arie, kings, temples] = await Promise.all([
+    fetch("data/arie_1918-1919.json").then(r => r.json()),
+    fetch("data/kings.json").then(r => r.json()),
+    fetch("data/temples.json").then(r => r.json())
   ]);
   DATA.inscriptions = arie;
   DATA.kings = kings.filter(k => k.king_id);
+  DATA.temples = temples;
   buildIndexes();
 }
 
@@ -19,26 +21,24 @@ const INDEX = { byKing: {}, temples: [] };
 
 function buildIndexes() {
   INDEX.byKing = {};
-  const templeMap = new Map();
   DATA.inscriptions.forEach(ins => {
     const kid = ins.king_identified_id || "unidentified";
     if (!INDEX.byKing[kid]) INDEX.byKing[kid] = [];
     INDEX.byKing[kid].push(ins);
-    const tkey = (ins.temple || "") + "|" + (ins.temple_place || "");
-    if (!templeMap.has(tkey)) {
-      templeMap.set(tkey, {
-        name: ins.temple || "Temple not recorded",
-        place: ins.temple_place || "",
-        district: titleCase(ins.temple_district || ""),
-        lat: ins.latitude, lng: ins.longitude,
-        inscriptions: [], dynasties: new Set()
-      });
-    }
-    const t = templeMap.get(tkey);
+  });
+
+  const byId = new Map(DATA.temples.map(t => [t.temple_id, { ...t, inscriptions: [], dynasties: new Set() }]));
+  DATA.inscriptions.forEach(ins => {
+    if (!ins.temple_id || !byId.has(ins.temple_id)) return;
+    const t = byId.get(ins.temple_id);
     t.inscriptions.push(ins);
     if (ins.dynasty_normalized) t.dynasties.add(ins.dynasty_normalized);
+    if (!t.lat && ins.latitude) t.lat = ins.latitude;
+    if (!t.lng && ins.longitude) t.lng = ins.longitude;
   });
-  INDEX.temples = Array.from(templeMap.values()).sort((a,b) => b.inscriptions.length - a.inscriptions.length);
+  INDEX.temples = Array.from(byId.values())
+    .filter(t => t.inscriptions.length > 0)
+    .sort((a, b) => b.inscriptions.length - a.inscriptions.length);
 }
 
 function titleCase(s) { return (s || "").replace(/\b\w/g, c => c.toUpperCase()); }
