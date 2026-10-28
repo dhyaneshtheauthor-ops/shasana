@@ -1,5 +1,6 @@
 /* Shasana — redesigned client app */
 const DATA = { inscriptions: [], kings: [], temples: [] };
+const INDEX = { byKing: {}, temples: [] };
 let mapInstance = null;
 const CARTO_KEY = "cb1_4vlf_1_e392d35f157b6850d4b0be27";
 
