@@ -418,13 +418,14 @@ function searchAll(q) {
 /* MAP */
 let mapMarkers = [];
 let selectedMarker = null;
-let currentFilters = { q: "", dyn: "", king: "", cen: "" };
+let currentFilters = { q: "", dyn: "", king: "", cen: "", year: "" };
 
 function getFilteredInscriptions(t) {
   return t.inscriptions.filter(i => {
     if (currentFilters.dyn && i.dynasty_normalized !== currentFilters.dyn) return false;
     if (currentFilters.king && i.king_identified_id !== currentFilters.king) return false;
     if (currentFilters.cen && !expandCenturies(i.century).includes(currentFilters.cen)) return false;
+    if (currentFilters.year && !(i.arie_year || "").includes(currentFilters.year)) return false;
     return true;
   });
 }
@@ -435,24 +436,40 @@ function renderMap() {
   const centurySet = new Set();
   DATA.inscriptions.forEach(i => expandCenturies(i.century).forEach(c => centurySet.add(c)));
   const centuries = [...centurySet].sort();
+  const years = [...new Set(DATA.inscriptions.map(i => (i.arie_year || "").split("-")[0]).filter(Boolean))].sort();
+  const timeline = centuries.map(c => {
+    const label = c.replace("th century", "00s").replace("st century", "00s");
+    return `<button class="tl-dot" data-cen="${escapeHtml(c)}" title="${escapeHtml(c)}">${label}</button>`;
+  }).join("");
   $app().innerHTML = `
     <div class="map-filters" style="position:relative">
-      <input type="search" id="mapSearch" placeholder="Search temple, king, place, district…" class="map-search" autocomplete="off">
+      <input type="search" id="mapSearch" placeholder="Search temple, king, place, district, or ARIE number…" class="map-search" autocomplete="off">
       <div id="searchSuggest" class="search-suggest" style="display:none"></div>
       <select id="mapDynasty"><option value="">All dynasties</option><option value="Pandya">Pandya</option><option value="Chola">Chola</option></select>
       <select id="mapKing"><option value="">All kings</option>${kings}</select>
       <select id="mapCentury"><option value="">All centuries</option>${centuries.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}</select>
+      <select id="mapYear"><option value="">All ARIE years</option>${years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join("")}</select>
     </div>
     <div class="map-layout">
       <div id="map"></div>
       <aside class="side-panel" id="sidePanel"><p class="muted">Click a pin to see temple details.</p></aside>
     </div>
+    <div class="timeline-bar" id="timelineBar">${timeline}</div>
   `;
   initFullMap();
   document.getElementById("mapSearch").addEventListener("input", onSearchInput);
   document.getElementById("mapDynasty").addEventListener("change", applyFilters);
   document.getElementById("mapKing").addEventListener("change", applyFilters);
   document.getElementById("mapCentury").addEventListener("change", applyFilters);
+  document.getElementById("mapYear").addEventListener("change", applyFilters);
+  document.querySelectorAll(".tl-dot").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentFilters.cen = btn.dataset.cen;
+      document.getElementById("mapCentury").value = btn.dataset.cen;
+      document.querySelectorAll(".tl-dot").forEach(b => b.classList.toggle("active", b === btn));
+      refreshMarkers();
+    });
+  });
 }
 
 function onSearchInput(e) {
@@ -462,9 +479,11 @@ function onSearchInput(e) {
   currentFilters.dyn = "";
   currentFilters.king = "";
   currentFilters.cen = "";
+  currentFilters.year = "";
   document.getElementById("mapDynasty").value = "";
   document.getElementById("mapKing").value = "";
   document.getElementById("mapCentury").value = "";
+  document.getElementById("mapYear").value = "";
   showSuggestions(q);
   refreshMarkers();
 }
@@ -491,12 +510,32 @@ function showSuggestions(q) {
   box.querySelectorAll(".suggest-item").forEach((el, i) => {
     if (results[i]) el.addEventListener("click", results[i].action);
   });
+  DATA.inscriptions.forEach(ins => {
+  if ((ins.arie_no || "").toLowerCase().includes(q)) {
+    const t = INDEX.temples.find(x => x.temple_id === ins.temple_id);
+    if (t) results.push({
+      type: "Inscription",
+      label: ins.arie_no + " · " + (t.name || ""),
+      action: () => {
+        document.getElementById("mapSearch").value = ins.arie_no;
+        currentFilters.q = "";
+        box.style.display = "none";
+        refreshMarkers();
+        const m = mapMarkers.find(mm => mm.getLatLng().lat === t.lat && mm.getLatLng().lng === t.lng);
+        if (m) showTempleCard(t, m);
+        else showTempleCard(t, null);
+      }
+    });
+  }
+});
 }
 
 function applyFilters() {
   currentFilters.dyn = document.getElementById("mapDynasty").value;
   currentFilters.king = document.getElementById("mapKing").value;
   currentFilters.cen = document.getElementById("mapCentury").value;
+  currentFilters.year = document.getElementById("mapYear").value;
+  document.querySelectorAll(".tl-dot").forEach(b => b.classList.toggle("active", b.dataset.cen === currentFilters.cen));
   refreshMarkers();
 }
 
@@ -539,17 +578,16 @@ function refreshMarkers() {
     if (currentFilters.q && !templeMatches(t, currentFilters.q)) return;
     const filtered = getFilteredInscriptions(t);
     if (filtered.length === 0) return;
-    const count = filtered.length;
+    const pandya = filtered.filter(i => i.dynasty_normalized === "Pandya").length;
+    const chola = filtered.filter(i => i.dynasty_normalized === "Chola").length;
     const size = Math.min(56, Math.max(28, 20 + count * 2));
+    const pct = count ? Math.round((pandya / count) * 100) : 0;
+    const bg = `conic-gradient(#3F7D6E 0 ${pct}%, #A3301F ${pct}% 100%)`;
     const icon = L.divIcon({
-      className: "",
-      html: `<div class="map-pin" style="width:${size}px;height:${size}px">${count}</div>`,
-      iconSize: [size, size], iconAnchor: [size/2, size/2]
-    });
-    const m = L.marker([t.lat, t.lng], { icon }).addTo(mapInstance);
-    m.on("click", () => showTempleCard(t, m));
-    mapMarkers.push(m);
-  });
+  className: "",
+  html: `<div class="map-pin" style="width:${size}px;height:${size}px;background:${bg}">${count}</div>`,
+  iconSize: [size, size], iconAnchor: [size/2, size/2]
+});
   updateSidePanel();
 }
 
