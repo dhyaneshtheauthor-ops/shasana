@@ -493,8 +493,8 @@ function showSuggestions(q) {
   if (!q) { box.style.display = "none"; return; }
   const results = [];
   INDEX.temples.forEach(t => {
-  if (templeMatches(t, q))
-    results.push({ type: "Temple", label: t.name + (t.place ? " · " + t.place : ""), action: () => { document.getElementById("mapSearch").value = t.name; currentFilters.q = t.name.toLowerCase(); box.style.display = "none"; refreshMarkers(); } });
+    if (templeMatches(t, q))
+      results.push({ type: "Temple", label: t.name + (t.place ? " · " + t.place : ""), action: () => { document.getElementById("mapSearch").value = t.name; currentFilters.q = t.name.toLowerCase(); box.style.display = "none"; refreshMarkers(); } });
   });
   DATA.kings.forEach(k => {
     if ((INDEX.byKing[k.king_id] || []).length && (k.king_name_standard || "").toLowerCase().includes(q))
@@ -505,29 +505,27 @@ function showSuggestions(q) {
     if (d.toLowerCase().includes(q))
       results.push({ type: "District", label: d, action: () => { document.getElementById("mapSearch").value = d; currentFilters.q = d.toLowerCase(); box.style.display = "none"; refreshMarkers(); } });
   });
+  DATA.inscriptions.forEach(ins => {
+    if ((ins.arie_no || "").toLowerCase().includes(q)) {
+      const t = INDEX.temples.find(x => x.temple_id === ins.temple_id);
+      if (t) results.push({
+        type: "Inscription",
+        label: ins.arie_no + " · " + (t.name || ""),
+        action: () => {
+          document.getElementById("mapSearch").value = ins.arie_no;
+          currentFilters.q = "";
+          box.style.display = "none";
+          refreshMarkers();
+          showTempleCard(t, null);
+        }
+      });
+    }
+  });
   box.innerHTML = results.slice(0, 8).map((r, i) => `<div class="suggest-item" data-i="${i}"><span class="suggest-type">${r.type}</span> ${escapeHtml(r.label)}</div>`).join("") || `<div class="suggest-item muted">No matches</div>`;
   box.style.display = "block";
   box.querySelectorAll(".suggest-item").forEach((el, i) => {
     if (results[i]) el.addEventListener("click", results[i].action);
   });
-  DATA.inscriptions.forEach(ins => {
-  if ((ins.arie_no || "").toLowerCase().includes(q)) {
-    const t = INDEX.temples.find(x => x.temple_id === ins.temple_id);
-    if (t) results.push({
-      type: "Inscription",
-      label: ins.arie_no + " · " + (t.name || ""),
-      action: () => {
-        document.getElementById("mapSearch").value = ins.arie_no;
-        currentFilters.q = "";
-        box.style.display = "none";
-        refreshMarkers();
-        const m = mapMarkers.find(mm => mm.getLatLng().lat === t.lat && mm.getLatLng().lng === t.lng);
-        if (m) showTempleCard(t, m);
-        else showTempleCard(t, null);
-      }
-    });
-  }
-});
 }
 
 function applyFilters() {
@@ -578,16 +576,20 @@ function refreshMarkers() {
     if (currentFilters.q && !templeMatches(t, currentFilters.q)) return;
     const filtered = getFilteredInscriptions(t);
     if (filtered.length === 0) return;
+    const count = filtered.length;
     const pandya = filtered.filter(i => i.dynasty_normalized === "Pandya").length;
-    const chola = filtered.filter(i => i.dynasty_normalized === "Chola").length;
     const size = Math.min(56, Math.max(28, 20 + count * 2));
     const pct = count ? Math.round((pandya / count) * 100) : 0;
     const bg = `conic-gradient(#3F7D6E 0 ${pct}%, #A3301F ${pct}% 100%)`;
     const icon = L.divIcon({
-  className: "",
-  html: `<div class="map-pin" style="width:${size}px;height:${size}px;background:${bg}">${count}</div>`,
-  iconSize: [size, size], iconAnchor: [size/2, size/2]
-});
+      className: "",
+      html: `<div class="map-pin" style="width:${size}px;height:${size}px;background:${bg}">${count}</div>`,
+      iconSize: [size, size], iconAnchor: [size/2, size/2]
+    });
+    const m = L.marker([t.lat, t.lng], { icon }).addTo(mapInstance);
+    m.on("click", () => showTempleCard(t, m));
+    mapMarkers.push(m);
+  });
   updateSidePanel();
 }
 
