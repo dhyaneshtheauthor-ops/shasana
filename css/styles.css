@@ -201,13 +201,39 @@ header.site {
 .dot { width: 8px; height: 8px; border-radius: 50%; }
 .dot-pandya { background: var(--verdigris); }
 .dot-chola { background: var(--kumkum); }
+}
+
 
 /* Inscription cards */
 .insc-card {
-  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-  padding: 14px 16px; margin-bottom: 10px; border-left: 4px solid var(--verdigris);
+  background: var(--card);
+  border: 1px solid rgba(201,154,59,0.25);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  transition: border-color .2s ease, background .2s ease;
 }
-.insc-card.chola { border-left-color: var(--kumkum); }
+.insc-card:hover { border-color: var(--gold); }
+.insc-card.pandya { background: rgba(63,125,110,0.06); }
+.insc-card.chola { background: rgba(163,48,31,0.06); }
+.insc-card.pandya:hover { border-color: var(--verdigris); }
+.insc-card.chola:hover { border-color: var(--kumkum); }
+[data-theme="light"] .insc-card.pandya { background: rgba(63,125,110,0.08); }
+[data-theme="light"] .insc-card.chola { background: rgba(163,48,31,0.07); }
+.insc-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.insc-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.insc-meta { flex: 1; }
 .are-badge { font-family: ui-monospace, monospace; font-size: .8rem; background: rgba(201,154,59,.15); padding: 2px 6px; border-radius: 4px; color: var(--gold); }
 .mono-chip { font-family: ui-monospace, monospace; font-size: .78rem; background: rgba(237,230,216,.08); padding: 2px 6px; border-radius: 4px; cursor: help; }
 
