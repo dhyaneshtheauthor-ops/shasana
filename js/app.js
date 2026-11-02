@@ -286,11 +286,21 @@ function inscCard(ins) {
   const note = ins.SII_notes || ins.remarks || "";
   const loc = ins.location_within_temple || "";
   const typeCls = ins.record_type === "copper" ? "tag-chola" : "tag-pandya";
+  const logo = dyn === "chola"
+    ? `<img src="images/icons/chola_emblem.png" alt="" class="insc-logo">`
+    : dyn === "pandya"
+    ? `<img src="images/icons/pandya_emblem.png" alt="" class="insc-logo">`
+    : "";
   return `<div class="insc-card ${dyn}">
-    <span class="are-badge">${escapeHtml(ins.arie_no || ins.arie_id)}</span>
-    <span class="tag ${typeCls}" style="margin-left:6px">${escapeHtml(ins.record_type || "stone")}</span>
-    <span class="muted" style="margin-left:8px">${formatDate(ins.date_raw, ins.date_identified)}</span>
-    <h4 style="margin:8px 0 4px">${ins.king_identified_id ? `<a href="#/king/${ins.king_identified_id}">${escapeHtml(ins.king || "Unnamed king")}</a>` : escapeHtml(ins.king || "Unnamed king")}</h4>
+    <div class="insc-header">
+      ${logo}
+      <div class="insc-meta">
+        <span class="are-badge">${escapeHtml(ins.arie_no || ins.arie_id)}</span>
+        <span class="tag ${typeCls}" style="margin-left:6px">${escapeHtml(ins.record_type || "stone")}</span>
+        <span class="muted" style="margin-left:8px">${formatDate(ins.date_raw, ins.date_identified)}</span>
+        <h4 style="margin:6px 0 0">${ins.king_identified_id ? `<a href="#/king/${ins.king_identified_id}">${escapeHtml(ins.king || "Unnamed king")}</a>` : escapeHtml(ins.king || "Unnamed king")}</h4>
+      </div>
+    </div>
     ${loc ? `<p class="muted">${escapeHtml(loc)}</p>` : ""}
     <p class="muted">${escapeHtml(note.slice(0, 160))}</p>
     <a href="#/inscription/${encodeURIComponent(ins.arie_id)}">View →</a>
