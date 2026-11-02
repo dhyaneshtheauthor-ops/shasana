@@ -380,7 +380,7 @@ function renderInscription(id) {
     if (links.length) tentative = `<p class="muted">Might be ${links.join(" or ")}</p>`;
   }
   const note = ins.SII_notes || ins.remarks || "No summary available.";
-  const citation = [ins.ARIE_citation, ins.SII_citation].filter(Boolean).join(" · ");
+  const citation = [ins.ARIE_citation, ins.SII_citation ? "SII " + ins.SII_citation : ""].filter(Boolean).join(" · ");
   const hasSII = ins.SII_status === "yes" && (ins.SII_contents || ins.SII_translation);
   const textBlock = hasSII ? `
     <div class="sii-tabs">
@@ -475,7 +475,7 @@ function renderMap() {
   const centurySet = new Set();
   DATA.inscriptions.forEach(i => expandCenturies(i.century).forEach(c => centurySet.add(c)));
   const centuries = [...centurySet].sort();
-  const years = [...new Set(DATA.inscriptions.map(i => (i.arie_year || "").split("-")[0]).filter(Boolean))].sort();
+  const years = [...new Set(DATA.inscriptions.map(i => String(i.arie_year || "").split("-")[0]).filter(Boolean))].sort();
   const timeline = centuries.map(c => {
     const label = c.replace("th century", "00s").replace("st century", "00s");
     return `<button class="tl-dot" data-cen="${escapeHtml(c)}" title="${escapeHtml(c)}">${label}</button>`;
