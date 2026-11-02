@@ -39,6 +39,7 @@ function buildIndexes() {
       deity: t.temple_deity || "",
       bio: t.temple_short_bio || "",
       image_url: t.temple_image || "",
+      image_attribution: t.image_attribution || "",
       popularity: t.popularity || "",
       inscriptions: [],
       dynasties: new Set()
@@ -281,13 +282,17 @@ function templeMatches(t, q) {
 
 
 function inscCard(ins) {
-  const dyn = (ins.dynasty_normalized||"").toLowerCase();
+  const dyn = (ins.dynasty_normalized || "").toLowerCase();
+  const note = ins.SII_notes || ins.remarks || "";
+  const loc = ins.location_within_temple || "";
+  const typeCls = ins.record_type === "copper" ? "tag-chola" : "tag-pandya";
   return `<div class="insc-card ${dyn}">
-    <span class="are-badge">${escapeHtml(ins.arie_no||ins.arie_id)}</span>
+    <span class="are-badge">${escapeHtml(ins.arie_no || ins.arie_id)}</span>
+    <span class="tag ${typeCls}" style="margin-left:6px">${escapeHtml(ins.record_type || "stone")}</span>
     <span class="muted" style="margin-left:8px">${formatDate(ins.date_raw, ins.date_identified)}</span>
-    <h4 style="margin:8px 0 4px">${ins.king_identified_id ? `<a href="#/king/${ins.king_identified_id}">${escapeHtml(ins.king||"")}</a>` : escapeHtml(ins.king||"Unidentified")}</h4>
-    <p class="muted">${escapeHtml((ins.remarks||"").slice(0,160))}</p>
-    ${ins._exact_location ? `<p class="muted">${escapeHtml(ins._exact_location)}</p>` : ""}
+    <h4 style="margin:8px 0 4px">${ins.king_identified_id ? `<a href="#/king/${ins.king_identified_id}">${escapeHtml(ins.king || "Unnamed king")}</a>` : escapeHtml(ins.king || "Unnamed king")}</h4>
+    ${loc ? `<p class="muted">${escapeHtml(loc)}</p>` : ""}
+    <p class="muted">${escapeHtml(note.slice(0, 160))}</p>
     <a href="#/inscription/${encodeURIComponent(ins.arie_id)}">View →</a>
   </div>`;
 }
@@ -341,6 +346,7 @@ function renderKing(id) {
         ${placeholder(k.king_name_standard)}
         <h2>${escapeHtml(k.king_name_standard)}</h2>
         <div class="king-bio">${escapeHtml(k.long_bio || k.short_bio || "")}</div>
+        ${k.common_titles ? `<p class="muted">Titles: ${escapeHtml(k.common_titles)}</p>` : ""}
         ${k.meykirti_prashasti ? `<div class="meykirtti">${escapeHtml(k.meykirti_prashasti)}</div>` : ""}
         <h3 class="section-title">Inscriptions (${insc.length})</h3>
         ${insc.map(ins => inscCard(ins)).join("") || "<p class='muted'>No inscriptions linked yet.</p>"}
@@ -361,22 +367,55 @@ function renderKing(id) {
 function renderInscription(id) {
   const ins = DATA.inscriptions.find(x => x.arie_id === id);
   if (!ins) { $app().innerHTML = "<p>Inscription not found.</p>"; return; }
-  const kingLink = ins.king_identified_id ? `<a href="#/king/${ins.king_identified_id}">${escapeHtml(ins.king||"")}</a>` : escapeHtml(ins.king||"Unidentified");
+  const king = DATA.kings.find(k => k.king_id === ins.king_identified_id);
+  const kingName = king ? king.king_name_standard : (ins.king || "Unnamed king");
+  const kingLink = ins.king_identified_id ? `<a href="#/king/${ins.king_identified_id}">${escapeHtml(kingName)}</a>` : escapeHtml(kingName);
+  let tentative = "";
+  if (ins.king_tentative_ids) {
+    const ids = String(ins.king_tentative_ids).split(",").map(s => s.trim()).filter(Boolean);
+    const links = ids.map(id => {
+      const k = DATA.kings.find(x => x.king_id === id);
+      return k ? `<a href="#/king/${id}">${escapeHtml(k.king_name_standard)}</a>` : id;
+    });
+    if (links.length) tentative = `<p class="muted">Might be ${links.join(" or ")}</p>`;
+  }
+  const note = ins.SII_notes || ins.remarks || "No summary available.";
+  const citation = [ins.ARIE_citation, ins.SII_citation].filter(Boolean).join(" · ");
+  const hasSII = ins.SII_status === "yes" && (ins.SII_contents || ins.SII_translation);
+  const textBlock = hasSII ? `
+    <div class="sii-tabs">
+      <button class="chip active" data-tab="trans">Translation</button>
+      <button class="chip" data-tab="orig">Original</button>
+    </div>
+    <div id="siiTrans" class="insc-card" style="white-space:pre-wrap">${escapeHtml(ins.SII_translation || "")}</div>
+    <div id="siiOrig" class="insc-card" style="white-space:pre-wrap;display:none">${escapeHtml(ins.SII_contents || "")}</div>
+  ` : "";
   $app().innerHTML = `
     <p><a href="#/">← Home</a></p>
-    <span class="tag tag-pandya"><img src="images/icons/pandya_emblem.png" alt="" width="16" height="16" style="vertical-align:middle;margin-right:4px">Pandya</span>
+    <span class="tag tag-${(ins.dynasty_normalized||"pandya").toLowerCase()}">${escapeHtml(ins.dynasty_normalized || "")}</span>
     <h2>${escapeHtml(ins.arie_no || ins.arie_id)}</h2>
-    <p class="muted">${escapeHtml(ins.citation||"")}</p>
+    <p class="muted">${escapeHtml(ins.location_within_temple || "")}</p>
+    <p class="muted">${escapeHtml(citation)}</p>
     <div class="stats">
       <div class="stat"><div class="lbl">King</div><div>${kingLink}</div></div>
       <div class="stat"><div class="lbl">Date</div><div>${formatDate(ins.date_raw, ins.date_identified)}</div></div>
-      <div class="stat"><div class="lbl">Temple</div><div>${escapeHtml(ins.temple||"Temple not recorded")}</div></div>
-      <div class="stat"><div class="lbl">Place</div><div>${escapeHtml(ins.temple_place||"")}, ${escapeHtml(titleCase(ins.temple_district||""))}</div></div>
+      <div class="stat"><div class="lbl">Language</div><div>${escapeHtml(ins.language || "—")}</div></div>
+      <div class="stat"><div class="lbl">Type</div><div>${escapeHtml(ins.record_type || "stone")}</div></div>
     </div>
-    <div class="insc-card">${escapeHtml(ins.remarks||"No summary available.")}</div>
-    ${ins.location_within_temple ? `<p class="muted">Location: ${escapeHtml(ins.location_within_temple)}</p>` : ""}
-    ${ins.keywords ? `<p class="muted">Keywords: ${escapeHtml(ins.keywords)}</p>` : ""}
+    ${tentative}
+    <div class="insc-card">${escapeHtml(note)}</div>
+    ${textBlock}
   `;
+  if (hasSII) {
+    document.querySelectorAll(".sii-tabs .chip").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".sii-tabs .chip").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("siiTrans").style.display = btn.dataset.tab === "trans" ? "" : "none";
+        document.getElementById("siiOrig").style.display = btn.dataset.tab === "orig" ? "" : "none";
+      });
+    });
+  }
 }
 
 /* SEARCH */
