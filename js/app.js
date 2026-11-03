@@ -1,7 +1,7 @@
 /* Shasana — redesigned client app */
 const DATA = { inscriptions: [], kings: [], temples: [] };
 const INDEX = { byKing: {}, temples: [] };
-const collapsedBranches = new Set();
+const collapsedBranches = new Set(["First Empire", "Early", "Early Pandya"]);
 let mapInstance = null;
 let clusterLayer = null;
 const CARTO_KEY = "cb1_4vlf_1_e392d35f157b6850d4b0be27";
