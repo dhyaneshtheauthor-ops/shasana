@@ -371,20 +371,8 @@ header.site {
 .timeline-bar {
   display: flex;
   align-items: center;
-  gap: 0;
-  margin-top: 12px;
-  padding: 16px 12px 8px;
-  background: linear-gradient(180deg, rgba(36,33,30,.6), rgba(28,26,24,.4));
-  border: 1px solid rgba(201,154,59,0.25);
-  border-radius: 8px;
-  overflow-x: auto;
-  position: relative;
-}
-.timeline-bar {
-  display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 24px;
   margin-top: 12px;
   padding: 16px 12px 8px;
   background: linear-gradient(180deg, rgba(36,33,30,.6), rgba(28,26,24,.4));
