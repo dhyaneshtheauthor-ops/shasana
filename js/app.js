@@ -489,30 +489,25 @@ function renderMap() {
   const kings = kingsWithInsc.map(k => `<option value="${escapeHtml(k.king_id)}">${escapeHtml(k.king_name_standard)}</option>`).join("");
   const centurySet = new Set();
   DATA.inscriptions.forEach(i => expandCenturies(i.century).forEach(c => centurySet.add(c)));
+  const centuries = [...centurySet].sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
   const years = [...new Set(DATA.inscriptions.map(i => String(i.arie_year || "").split("-")[0]).filter(Boolean))].sort();
-  const centuries = [...centurySet].sort((a, b) => {
-    const na = parseInt(a) || 0;
-    const nb = parseInt(b) || 0;
-    return na - nb;
-  });
   const timeline = `<button class="tl-dot" data-cen="" title="All">All</button>` + centuries.map(c => {
     const label = c.replace("th century", "00s").replace("st century", "00s");
     return `<button class="tl-dot" data-cen="${escapeHtml(c)}" title="${escapeHtml(c)}">${label}</button>`;
   }).join("");
   $app().innerHTML = `
-    <div class="map-filters" style="position:relative">
-      <input type="search" id="mapSearch" placeholder="Search temple, king, place, district, or ARIE number…" class="map-search" autocomplete="off">
-      <div id="searchSuggest" class="search-suggest" style="display:none"></div>
-      <select id="mapDynasty"><option value="">All dynasties</option><option value="Pandya">Pandya</option><option value="Chola">Chola</option></select>
-      <select id="mapKing"><option value="">All kings</option>${kings}</select>
-      <select id="mapCentury"><option value="">All centuries</option>${centuries.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}</select>
-      <select id="mapYear"><option value="">All ARIE years</option>${years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join("")}</select>
-    </div>
-    <div class="map-layout">
+    <div class="map-page">
       <div id="map"></div>
-      <aside class="side-panel" id="sidePanel"><p class="muted">Click a pin to see temple details.</p></aside>
+      <div class="map-overlays">
+        <input type="search" id="mapSearch" placeholder="Search temple, king, place…" class="map-search" autocomplete="off">
+        <select id="mapDynasty"><option value="">All dynasties</option><option value="Pandya">Pandya</option><option value="Chola">Chola</option></select>
+        <select id="mapKing"><option value="">All kings</option>${kings}</select>
+        <select id="mapCentury"><option value="">All centuries</option>${centuries.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}</select>
+        <select id="mapYear"><option value="">All ARIE years</option>${years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join("")}</select>
+      </div>
+      <div id="pinCard" class="pin-card" style="display:none"></div>
+      <div class="timeline-bar" id="timelineBar">${timeline}</div>
     </div>
-    <div class="timeline-bar" id="timelineBar">${timeline}</div>
   `;
   initFullMap();
   document.getElementById("mapSearch").addEventListener("input", onSearchInput);
@@ -660,19 +655,18 @@ function showTempleCard(t, marker) {
   const loc = [t.place, t.district].filter(Boolean).join(", ");
   const sample = filtered.slice(0, 4);
   const img = t.image_url ? `<img src="${escapeHtml(t.image_url)}" alt="" class="temple-card-img">` : placeholder(t.name);
-  const panel = document.getElementById("sidePanel");
+  const panel = document.getElementById("pinCard");
   if (!panel) return;
+  panel.style.display = "block";
   panel.innerHTML = `
-    <div class="temple-sidebar-card">
-      ${img}
-      <h3>${escapeHtml(t.name)}</h3>
-      <p class="muted">${escapeHtml(loc)}</p>
-      ${t.bio ? `<p>${escapeHtml(t.bio)}</p>` : ""}      
-      <p><strong>${filtered.length}</strong> inscriptions${currentFilters.king || currentFilters.cen || currentFilters.dyn ? " (filtered)" : ""}</p>
-      <p class="muted">Deity: ${escapeHtml(t.deity || "Not recorded")}</p>
-      <div>${sample.map(i => `<div class="mini-insc">${escapeHtml(i.arie_no||"")} · ${escapeHtml(i.king||"")}</div>`).join("")}</div>
-      <a href="#/temple/${slug}" class="read-more">Read more →</a>
-    </div>
+    <button onclick="document.getElementById('pinCard').style.display='none'" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem">×</button>
+    ${img}
+    <h3>${escapeHtml(t.name)}</h3>
+    <p class="muted">${escapeHtml(loc)}</p>
+    ${t.bio ? `<p>${escapeHtml(t.bio)}</p>` : ""}
+    <p><strong>${filtered.length}</strong> inscriptions</p>
+    <div>${sample.map(i => `<div class="mini-insc">${escapeHtml(i.arie_no||"")} · ${escapeHtml(i.king||"")}</div>`).join("")}</div>
+    <a href="#/temple/${slug}" class="read-more">Read more →</a>
   `;
 }
 
