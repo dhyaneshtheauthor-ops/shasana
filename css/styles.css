@@ -402,7 +402,7 @@ header.site {
   transform: translateY(-50%);
 }
 .tl-dot {
-  background: transparent;
+  background: #1C1A18;
   border: none;
   color: var(--text);
   font-size: 1rem;
