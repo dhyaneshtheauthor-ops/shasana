@@ -291,20 +291,19 @@ function inscCard(ins) {
     : dyn === "pandya"
     ? `<img src="images/icons/pandya_emblem.png" alt="" class="insc-logo">`
     : "";
-  return `<div class="insc-card ${dyn}">
+  return `<a href="#/inscription/${encodeURIComponent(ins.arie_id)}" class="insc-card ${dyn}">
     <div class="insc-header">
-      ${logo}
       <div class="insc-meta">
         <span class="are-badge">${escapeHtml(ins.arie_no || ins.arie_id)}</span>
         <span class="tag ${typeCls}" style="margin-left:6px">${escapeHtml(ins.record_type || "stone")}</span>
         <span class="muted" style="margin-left:8px">${formatDate(ins.date_raw, ins.date_identified)}</span>
-        <h4 style="margin:6px 0 0">${ins.king_identified_id ? `<a href="#/king/${ins.king_identified_id}">${escapeHtml(ins.king || "Unnamed king")}</a>` : escapeHtml(ins.king || "Unnamed king")}</h4>
+        <h4>${ins.king_identified_id ? escapeHtml(ins.king || "Unnamed king") : escapeHtml(ins.king || "Unnamed king")}</h4>
       </div>
+      ${logo}
     </div>
-    ${loc ? `<p class="muted">${escapeHtml(loc)}</p>` : ""}
-    <p class="muted">${escapeHtml(note.slice(0, 160))}</p>
-    <a href="#/inscription/${encodeURIComponent(ins.arie_id)}">View →</a>
-  </div>`;
+    ${loc ? `<p class="muted" style="margin:0 0 6px">${escapeHtml(loc)}</p>` : ""}
+    <p class="muted" style="margin:0">${escapeHtml(note.slice(0, 160))}</p>
+  </a>`;
 }
 
 /* KINGS */
