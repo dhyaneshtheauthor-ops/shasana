@@ -2,6 +2,7 @@
 const DATA = { inscriptions: [], kings: [], temples: [] };
 const INDEX = { byKing: {}, temples: [] };
 let mapInstance = null;
+let clusterLayer = null;
 const CARTO_KEY = "cb1_4vlf_1_e392d35f157b6850d4b0be27";
 
 const $app = () => document.getElementById("app");
@@ -618,33 +619,77 @@ function initFullMap() {
   updateMapTiles();
   refreshMarkers();
   mapInstance.on("moveend", updateSidePanel);
+  mapInstance.on("zoomend", refreshMarkers);
 }
 
 function refreshMarkers() {
   if (!mapInstance) return;
+  if (clusterLayer) { mapInstance.removeLayer(clusterLayer); clusterLayer = null; }
   mapMarkers.forEach(m => mapInstance.removeLayer(m));
   mapMarkers = [];
+  const points = [];
   INDEX.temples.forEach(t => {
     if (!t.lat || !t.lng) return;
     if (currentFilters.q && !templeMatches(t, currentFilters.q)) return;
     const filtered = getFilteredInscriptions(t);
     if (filtered.length === 0) return;
-    const count = filtered.length;
-    const pandya = filtered.filter(i => i.dynasty_normalized === "Pandya").length;
-    const size = Math.min(56, Math.max(28, 20 + count * 2));
-    const pct = count ? Math.round((pandya / count) * 100) : 0;
-    const bg = `conic-gradient(#3F7D6E 0 ${pct}%, #A3301F ${pct}% 100%)`;
-    const icon = L.divIcon({
-      className: "",
-      html: `<div class="map-pin" style="width:${size}px;height:${size}px;background:${bg}">${count}</div>`,
-      iconSize: [size, size], iconAnchor: [size/2, size/2]
-    });
-    const m = L.marker([t.lat, t.lng], { icon }).addTo(mapInstance);
-    m.on("click", () => showTempleCard(t, m));
-    mapMarkers.push(m);
+    points.push({ t, count: filtered.length, pandya: filtered.filter(i => i.dynasty_normalized === "Pandya").length });
   });
-  updateSidePanel();
+  // Simple grid cluster when zoomed out
+  const zoom = mapInstance.getZoom();
+  if (zoom < 8 && points.length > 8) {
+    const grid = {};
+    const cell = zoom < 6 ? 1.5 : 0.8;
+    points.forEach(p => {
+      const key = Math.floor(p.t.lat / cell) + "," + Math.floor(p.t.lng / cell);
+      if (!grid[key]) grid[key] = [];
+      grid[key].push(p);
+    });
+    Object.values(grid).forEach(group => {
+      const total = group.reduce((s, p) => s + p.count, 0);
+      const lat = group.reduce((s, p) => s + p.t.lat, 0) / group.length;
+      const lng = group.reduce((s, p) => s + p.t.lng, 0) / group.length;
+      const size = Math.min(64, 28 + total);
+      const icon = L.divIcon({
+        className: "",
+        html: `<div class="map-pin" style="width:${size}px;height:${size}px;background:#3F7D6E">${total}</div>`,
+        iconSize: [size, size], iconAnchor: [size/2, size/2]
+      });
+      const m = L.marker([lat, lng], { icon }).addTo(mapInstance);
+      m.on("click", () => showClusterCard(group));
+      mapMarkers.push(m);
+    });
+  } else {
+    points.forEach(p => {
+      const size = Math.min(56, Math.max(28, 20 + p.count * 2));
+      const pct = p.count ? Math.round((p.pandya / p.count) * 100) : 0;
+      const bg = `conic-gradient(#3F7D6E 0 ${pct}%, #A3301F ${pct}% 100%)`;
+      const icon = L.divIcon({
+        className: "",
+        html: `<div class="map-pin" style="width:${size}px;height:${size}px;background:${bg}">${p.count}</div>`,
+        iconSize: [size, size], iconAnchor: [size/2, size/2]
+      });
+      const m = L.marker([p.t.lat, p.t.lng], { icon }).addTo(mapInstance);
+      m.on("click", () => showTempleCard(p.t, m));
+      mapMarkers.push(m);
+    });
+  }
 }
+
+function showClusterCard(group) {
+  const panel = document.getElementById("pinCard");
+  if (!panel) return;
+  panel.style.display = "block";
+  panel.innerHTML = `
+    <button onclick="document.getElementById('pinCard').style.display='none'" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem">×</button>
+    <h3>${group.length} temples</h3>
+    ${group.map(p => `<div class="mini-insc" style="cursor:pointer;padding:8px 0" onclick="showTempleFromCluster('${p.t.temple_id}')">${escapeHtml(p.t.name)} · ${p.count}</div>`).join("")}
+  `;
+}
+window.showTempleFromCluster = function(id) {
+  const t = INDEX.temples.find(x => x.temple_id === id);
+  if (t) showTempleCard(t, null);
+};
 
 function showTempleCard(t, marker) {
   if (selectedMarker && selectedMarker.getElement) selectedMarker.getElement()?.querySelector(".map-pin")?.classList.remove("active");
