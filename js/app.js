@@ -336,7 +336,7 @@ function kingCard(k) {
   const years = (k.accession_year_ce && k.end_year_ce) ? `${k.accession_year_ce}–${k.end_year_ce}` : (k.century||"");
   const count = (INDEX.byKing[k.king_id]||[]).length;
   const img = k.image
-    ? `<img src="${escapeHtml(k.image)}.png" alt="" style="width:64px;height:80px;object-fit:cover;border-radius:8px;margin-right:12px">`
+    ? `<img src="${escapeHtml(k.image)}" alt="" style="width:64px;height:80px;object-fit:cover;border-radius:8px;margin-right:12px">`
     : "";
   return `<a href="#/king/${k.king_id}" id="k-${k.king_id}" class="card" style="display:block;text-decoration:none;color:inherit;margin-bottom:12px;padding:16px">
     <div style="display:flex;align-items:flex-start">
@@ -358,7 +358,7 @@ function renderKing(id) {
   const insc = INDEX.byKing[id] || [];
   const years = (k.accession_year_ce && k.end_year_ce) ? `${k.accession_year_ce}–${k.end_year_ce} CE` : (k.century||"");
   const portrait = k.image
-    ? `<img src="${escapeHtml(k.image)}.png" alt="${escapeHtml(k.king_name_standard)}" style="width:200px;height:250px;object-fit:cover;border-radius:12px;margin-bottom:16px">`
+    ? `<img src="${escapeHtml(k.image)}" alt="${escapeHtml(k.king_name_standard)}" style="width:200px;height:250px;object-fit:cover;border-radius:12px;margin-bottom:16px">`
     : placeholder(k.king_name_standard);
   $app().innerHTML = `
     <p><a href="#/kings">← Dynasty</a></p>
