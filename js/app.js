@@ -318,55 +318,77 @@ function renderKings() {
   const all = DATA.kings.filter(k => k.accession_year_ce);
   const minY = Math.min(...all.map(k => k.accession_year_ce));
   const maxY = Math.max(...all.map(k => k.end_year_ce || k.accession_year_ce));
-  const scale = 8;
-  const height = (maxY - minY) * scale + 200;
-  const eras = [...new Set(DATA.kings.map(k => k.dynasty_branch).filter(Boolean))];
-  const hidden = new Set();
-  function pos(k) { return ((k.accession_year_ce - minY) * scale) + 60; }
-  function card(k, isSub) {
-    const years = `${k.accession_year_ce}–${k.end_year_ce || "?"}`;
-    const count = (INDEX.byKing[k.king_id] || []).length;
-    const dyn = (k.dynasty || "").toLowerCase();
-    const top = pos(k);
-    return `<a href="#/king/${k.king_id}" class="dyn-card ${dyn}${isSub ? " sub" : ""} reveal" style="position:absolute;top:${top}px;left:8px;right:8px" data-era="${escapeHtml(k.dynasty_branch || "")}">
-      <h3>${escapeHtml(k.king_name_standard)}</h3>
-      <div class="years">${years}${count ? ` · ${count}` : ""}</div>
-      ${!isSub && k.short_bio ? `<div class="bio">${escapeHtml(k.short_bio.slice(0, 80))}</div>` : ""}
-    </a>`;
+  const branches = [...new Set(DATA.kings.map(k => k.dynasty_branch).filter(Boolean))];
+  const collapsed = new Set();
+  function layoutLane(dyn) {
+    const kings = DATA.kings.filter(k => k.dynasty === dyn && k.accession_year_ce && k.ruling_status !== "subsidiary").sort((a, b) => a.accession_year_ce - b.accession_year_ce);
+    const items = [];
+    let y = 60;
+    let lastBranch = "";
+    kings.forEach(k => {
+      if (k.dynasty_branch && k.dynasty_branch !== lastBranch) {
+        items.push({ type: "branch", branch: k.dynasty_branch, top: y });
+        y += 40;
+        lastBranch = k.dynasty_branch;
+      }
+      if (collapsed.has(k.dynasty_branch) && k.accession_year_ce < 850) return;
+      const cardH = k.short_bio ? 100 : 70;
+      items.push({ type: "king", king: k, top: y, height: cardH });
+      y += cardH + 12;
+    });
+    return { items, height: y + 40 };
   }
-  function lane(dyn) {
-    const kings = DATA.kings.filter(k => k.dynasty === dyn && k.accession_year_ce);
-    const primary = kings.filter(k => k.ruling_status !== "subsidiary");
-    return primary.map(k => card(k, false)).join("");
+  const chola = layoutLane("Chola");
+  const pandya = layoutLane("Pandya");
+  const height = Math.max(chola.height, pandya.height, 600);
+  function renderItems(items, dyn) {
+    return items.map(it => {
+      if (it.type === "branch") {
+        const isCol = collapsed.has(it.branch);
+        return `<div class="dyn-branch-toggle${isCol ? " collapsed" : ""}" style="position:absolute;top:${it.top}px;left:8px;right:8px" data-branch="${escapeHtml(it.branch)}">${escapeHtml(it.branch)}</div>`;
+      }
+      const k = it.king;
+      const years = `${k.accession_year_ce}–${k.end_year_ce || "?"}`;
+      const count = (INDEX.byKing[k.king_id] || []).length;
+      const bio = k.short_bio ? `<div class="bio">${escapeHtml(k.short_bio.slice(0, 90))}</div>` : "";
+      return `<a href="#/king/${k.king_id}" class="dyn-card ${dyn.toLowerCase()} reveal" style="position:absolute;top:${it.top}px;left:8px;right:8px;height:${it.height - 12}px" data-era="${escapeHtml(k.dynasty_branch || "")}">
+        <h3>${escapeHtml(k.king_name_standard)}</h3>
+        <div class="years">${years}${count ? ` · ${count}` : ""}</div>
+        ${bio}
+      </a>`;
+    }).join("");
   }
   const yearMarks = [];
   for (let y = Math.ceil(minY / 50) * 50; y <= maxY; y += 50) {
-    yearMarks.push(`<div class="dyn-year-label" style="top:${(y - minY) * scale + 60}px">${y}</div>`);
+    const pct = (y - minY) / (maxY - minY);
+    yearMarks.push(`<div class="dyn-year-label" style="top:${pct * (height - 80) + 40}px">${y}</div>`);
   }
   $app().innerHTML = `
     <div class="dyn-page">
       <h2>Dynasties</h2>
-      <div class="dyn-era-toggles">${eras.map(e => `<button data-era="${escapeHtml(e)}">${escapeHtml(e)}</button>`).join("")}</div>
       <div class="dyn-switch">
         <button class="active" data-mode="both">Both</button>
         <button data-mode="chola">Chola</button>
         <button data-mode="pandya">Pandya</button>
       </div>
       <div class="dyn-timeline" id="dynTl" style="height:${height}px">
-        <div class="dyn-lane" style="height:${height}px">${lane("Chola")}</div>
+        <div class="dyn-lane" style="height:${height}px">
+          <div class="dyn-lane-header chola"><img src="images/icons/chola_emblem.png" alt="" width="28" height="28"> Chola</div>
+          ${renderItems(chola.items, "Chola")}
+        </div>
         <div class="dyn-axis" style="height:${height}px"><div class="dyn-axis-line"></div>${yearMarks.join("")}</div>
-        <div class="dyn-lane" style="height:${height}px">${lane("Pandya")}</div>
+        <div class="dyn-lane" style="height:${height}px">
+          <div class="dyn-lane-header pandya"><img src="images/icons/pandya_emblem.png" alt="" width="28" height="28"> Pandya</div>
+          ${renderItems(pandya.items, "Pandya")}
+        </div>
       </div>
     </div>
   `;
-  document.querySelectorAll(".dyn-era-toggles button").forEach(btn => {
+  document.querySelectorAll(".dyn-branch-toggle").forEach(btn => {
     btn.addEventListener("click", () => {
-      const era = btn.dataset.era;
-      if (hidden.has(era)) hidden.delete(era); else hidden.add(era);
-      btn.classList.toggle("off", hidden.has(era));
-      document.querySelectorAll(".dyn-card").forEach(c => {
-        c.style.display = hidden.has(c.dataset.era) ? "none" : "";
-      });
+      const b = btn.dataset.branch;
+      if (collapsed.has(b)) collapsed.delete(b); else collapsed.add(b);
+      renderKings();
     });
   });
   document.querySelectorAll(".dyn-switch button").forEach(btn => {
