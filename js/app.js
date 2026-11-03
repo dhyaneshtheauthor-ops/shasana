@@ -483,7 +483,6 @@ function renderMap() {
   const kings = kingsWithInsc.map(k => `<option value="${escapeHtml(k.king_id)}">${escapeHtml(k.king_name_standard)}</option>`).join("");
   const centurySet = new Set();
   DATA.inscriptions.forEach(i => expandCenturies(i.century).forEach(c => centurySet.add(c)));
-  const centuries = [...centurySet].sort();
   const years = [...new Set(DATA.inscriptions.map(i => String(i.arie_year || "").split("-")[0]).filter(Boolean))].sort();
   const centuries = [...centurySet].sort((a, b) => {
     const na = parseInt(a) || 0;
