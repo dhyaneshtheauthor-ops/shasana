@@ -357,11 +357,14 @@ function renderKing(id) {
   if (!k) { $app().innerHTML = "<p>King not found.</p>"; return; }
   const insc = INDEX.byKing[id] || [];
   const years = (k.accession_year_ce && k.end_year_ce) ? `${k.accession_year_ce}–${k.end_year_ce} CE` : (k.century||"");
+  const portrait = k.image
+    ? `<img src="${escapeHtml(k.image)}.png" alt="${escapeHtml(k.king_name_standard)}" style="width:200px;height:250px;object-fit:cover;border-radius:12px;margin-bottom:16px">`
+    : placeholder(k.king_name_standard);
   $app().innerHTML = `
     <p><a href="#/kings">← Dynasty</a></p>
     <div class="king-layout">
       <div>
-        const portrait = k.image ? `<img src="${escapeHtml(k.image)}.png" alt="${escapeHtml(k.king_name_standard)}" style="width:200px;height:250px;object-fit:cover;border-radius:12px;margin-bottom:16px">` : placeholder(k.king_name_standard);
+        ${portrait}
         <h2>${escapeHtml(k.king_name_standard)}</h2>
         <div class="king-bio">${escapeHtml(k.long_bio || k.short_bio || "")}</div>
         ${k.common_titles ? `<p class="muted">Titles: ${escapeHtml(k.common_titles)}</p>` : ""}
