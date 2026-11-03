@@ -1,6 +1,7 @@
 /* Shasana — redesigned client app */
 const DATA = { inscriptions: [], kings: [], temples: [] };
 const INDEX = { byKing: {}, temples: [] };
+const collapsedBranches = new Set();
 let mapInstance = null;
 let clusterLayer = null;
 const CARTO_KEY = "cb1_4vlf_1_e392d35f157b6850d4b0be27";
@@ -318,50 +319,49 @@ function renderKings() {
   const all = DATA.kings.filter(k => k.accession_year_ce);
   const minY = Math.min(...all.map(k => k.accession_year_ce));
   const maxY = Math.max(...all.map(k => k.end_year_ce || k.accession_year_ce));
-  const branches = [...new Set(DATA.kings.map(k => k.dynasty_branch).filter(Boolean))];
-  const collapsed = new Set();
   function layoutLane(dyn) {
     const kings = DATA.kings.filter(k => k.dynasty === dyn && k.accession_year_ce && k.ruling_status !== "subsidiary").sort((a, b) => a.accession_year_ce - b.accession_year_ce);
     const items = [];
-    let y = 60;
+    let y = 70;
     let lastBranch = "";
     kings.forEach(k => {
       if (k.dynasty_branch && k.dynasty_branch !== lastBranch) {
         items.push({ type: "branch", branch: k.dynasty_branch, top: y });
-        y += 40;
+        y += 36;
         lastBranch = k.dynasty_branch;
       }
-      if (collapsed.has(k.dynasty_branch) && k.accession_year_ce < 850) return;
-      const cardH = k.short_bio ? 100 : 70;
+      if (collapsedBranches.has(k.dynasty_branch) && k.accession_year_ce < 850) return;
+      const hasBio = k.short_bio && k.short_bio.length > 10;
+      const cardH = hasBio ? 110 : 72;
       items.push({ type: "king", king: k, top: y, height: cardH });
-      y += cardH + 12;
+      y += cardH + 16;
     });
-    return { items, height: y + 40 };
+    return { items, height: y + 60 };
   }
   const chola = layoutLane("Chola");
   const pandya = layoutLane("Pandya");
-  const height = Math.max(chola.height, pandya.height, 600);
+  const height = Math.max(chola.height, pandya.height, 500);
   function renderItems(items, dyn) {
     return items.map(it => {
       if (it.type === "branch") {
-        const isCol = collapsed.has(it.branch);
-        return `<div class="dyn-branch-toggle${isCol ? " collapsed" : ""}" style="position:absolute;top:${it.top}px;left:8px;right:8px" data-branch="${escapeHtml(it.branch)}">${escapeHtml(it.branch)}</div>`;
+        const isCol = collapsedBranches.has(it.branch);
+        return `<div class="dyn-branch-toggle${isCol ? " collapsed" : ""}" style="position:absolute;top:${it.top}px;left:12px;right:12px;z-index:5" data-branch="${escapeHtml(it.branch)}">${escapeHtml(it.branch)}</div>`;
       }
       const k = it.king;
-      const years = `${k.accession_year_ce}–${k.end_year_ce || "?"}`;
+      const years = (k.accession_year_ce && k.end_year_ce) ? `${k.accession_year_ce}–${k.end_year_ce}` : (k.century || "");
       const count = (INDEX.byKing[k.king_id] || []).length;
-      const bio = k.short_bio ? `<div class="bio">${escapeHtml(k.short_bio.slice(0, 90))}</div>` : "";
-      return `<a href="#/king/${k.king_id}" class="dyn-card ${dyn.toLowerCase()} reveal" style="position:absolute;top:${it.top}px;left:8px;right:8px;height:${it.height - 12}px" data-era="${escapeHtml(k.dynasty_branch || "")}">
+      const bio = k.short_bio ? `<div class="bio">${escapeHtml(k.short_bio.slice(0, 100))}</div>` : "";
+      return `<a href="#/king/${k.king_id}" class="dyn-card ${dyn.toLowerCase()} reveal" style="position:absolute;top:${it.top}px;left:12px;right:12px;min-height:${it.height - 16}px" data-era="${escapeHtml(k.dynasty_branch || "")}">
         <h3>${escapeHtml(k.king_name_standard)}</h3>
-        <div class="years">${years}${count ? ` · ${count}` : ""}</div>
+        <div class="years">${escapeHtml(years)}${count ? ` · ${count} insc` : ""}</div>
         ${bio}
       </a>`;
     }).join("");
   }
   const yearMarks = [];
   for (let y = Math.ceil(minY / 50) * 50; y <= maxY; y += 50) {
-    const pct = (y - minY) / (maxY - minY);
-    yearMarks.push(`<div class="dyn-year-label" style="top:${pct * (height - 80) + 40}px">${y}</div>`);
+    const pct = (y - minY) / Math.max(1, maxY - minY);
+    yearMarks.push(`<div class="dyn-year-label" style="top:${pct * (height - 100) + 50}px">${y}</div>`);
   }
   $app().innerHTML = `
     <div class="dyn-page">
@@ -387,7 +387,7 @@ function renderKings() {
   document.querySelectorAll(".dyn-branch-toggle").forEach(btn => {
     btn.addEventListener("click", () => {
       const b = btn.dataset.branch;
-      if (collapsed.has(b)) collapsed.delete(b); else collapsed.add(b);
+      if (collapsedBranches.has(b)) collapsedBranches.delete(b); else collapsedBranches.add(b);
       renderKings();
     });
   });
