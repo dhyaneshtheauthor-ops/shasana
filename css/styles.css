@@ -371,28 +371,55 @@ header.site {
 .timeline-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   margin-top: 12px;
-  padding: 10px 8px;
+  padding: 16px 12px 8px;
+  background: linear-gradient(180deg, rgba(36,33,30,.6), rgba(28,26,24,.4));
+  border: 1px solid rgba(201,154,59,0.25);
+  border-radius: 8px;
   overflow-x: auto;
-  border-top: 1px solid var(--border);
+  position: relative;
+}
+.timeline-bar::before {
+  content: "";
+  position: absolute;
+  left: 20px; right: 20px; top: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(201,154,59,.5), transparent);
+  transform: translateY(-50%);
 }
 .tl-dot {
-  background: var(--card);
-  border: 2px solid var(--gold);
-  color: var(--text);
-  border-radius: 50%;
-  width: 52px;
-  height: 52px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
   font-size: .7rem;
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background .15s, color .15s;
+  padding: 8px 14px;
+  position: relative;
+  z-index: 1;
 }
-.tl-dot:hover, .tl-dot.active {
+.tl-dot::before {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 8px; height: 8px;
   background: var(--gold);
-  color: #1C1A18;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: .5;
+}
+.tl-dot.active {
+  color: var(--gold);
+}
+.tl-dot.active::before {
+  width: 14px; height: 14px;
+  background: var(--gold);
+  box-shadow: 0 0 8px rgba(201,154,59,.7);
+  opacity: 1;
+}
+.tl-dot:hover { color: var(--text); 
 }
 .map-pin {
   border-radius: 50%;
