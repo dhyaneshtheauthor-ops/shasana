@@ -500,7 +500,7 @@ function renderMap() {
     <div class="map-page">
       <div id="map"></div>
       <div class="map-overlays">
-        <div style="position:relative;flex:1;min-width:180px;max-width:320px">
+        <div style="position:relative;flex:1;min-width:280px;max-width:480px">
           <input type="search" id="mapSearch" placeholder="Search temple, king, place…" class="map-search" autocomplete="off">
           <div id="searchSuggest" class="search-suggest" style="display:none;position:absolute;top:100%;left:0;z-index:600;min-width:280px;margin-top:4px"></div>
         </div>
@@ -551,11 +551,28 @@ function showSuggestions(q) {
   const results = [];
   INDEX.temples.forEach(t => {
     if (templeMatches(t, q))
-      results.push({ type: "Temple", label: t.name + (t.place ? " · " + t.place : ""), action: () => { document.getElementById("mapSearch").value = t.name; currentFilters.q = t.name.toLowerCase(); box.style.display = "none"; refreshMarkers(); } });
+      results.push({
+        type: "Temple",
+        label: t.name + (t.place ? " · " + t.place : ""), 
+        action: () => {
+          document.getElementById("mapSearch").value = t.name;
+          currentFilters.q = t.name.toLowerCase();
+          box.style.display = "none";
+          refreshMarkers();
+          showTempleCard(t, null);
+        }
   });
   DATA.kings.forEach(k => {
     if ((INDEX.byKing[k.king_id] || []).length && (k.king_name_standard || "").toLowerCase().includes(q))
-      results.push({ type: "King", label: k.king_name_standard, action: () => { document.getElementById("mapKing").value = k.king_id; applyFilters(); box.style.display = "none"; } });
+      results.push({ 
+        type: "King",
+        label: k.king_name_standard, 
+        action: () => {
+          document.getElementById("mapKing").value = k.king_id;
+          applyFilters();
+          box.style.display = "none";
+          showKingCard(k.king_id);
+        }             
   });
   const districts = new Set(INDEX.temples.map(t => t.district).filter(Boolean));
   districts.forEach(d => {
@@ -573,7 +590,7 @@ function showSuggestions(q) {
           currentFilters.q = "";
           box.style.display = "none";
           refreshMarkers();
-          showTempleCard(t, null);
+          showInscriptionCard(ins);
         }
       });
     }
@@ -757,6 +774,21 @@ function showKingCard(kingId) {
     <p><strong>${(INDEX.byKing[kingId] || []).length}</strong> inscriptions</p>
     <div>${insc.map(i => `<div class="mini-insc">${escapeHtml(i.arie_no || "")} · ${escapeHtml(i.temple || "")}</div>`).join("")}</div>
     <a href="#/king/${kingId}" class="read-more">View king page →</a>
+  `;
+}
+function showInscriptionCard(ins) {
+  const panel = document.getElementById("pinCard");
+  if (!panel) return;
+  const note = ins.SII_notes || ins.remarks || "";
+  const loc = ins.location_within_temple || "";
+  panel.style.display = "block";
+  panel.innerHTML = `
+    <button onclick="document.getElementById('pinCard').style.display='none'" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem">×</button>
+    <span class="are-badge">${escapeHtml(ins.arie_no || "")}</span>
+    <h3 style="margin:8px 0">${escapeHtml(ins.king || "Unnamed king")}</h3>
+    ${loc ? `<p class="muted">${escapeHtml(loc)}</p>` : ""}
+    <p>${escapeHtml(note.slice(0, 220))}</p>
+    <a href="#/inscription/${encodeURIComponent(ins.arie_id)}" class="read-more">Read more →</a>
   `;
 }
 
