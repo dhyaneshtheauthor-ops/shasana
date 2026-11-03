@@ -473,7 +473,7 @@ function getFilteredInscriptions(t) {
     if (currentFilters.dyn && i.dynasty_normalized !== currentFilters.dyn) return false;
     if (currentFilters.king && i.king_identified_id !== currentFilters.king) return false;
     if (currentFilters.cen && !expandCenturies(i.century).includes(currentFilters.cen)) return false;
-    if (currentFilters.year && !(i.arie_year || "").includes(currentFilters.year)) return false;
+    if (currentFilters.year && !String(i.arie_year || "").includes(currentFilters.year)) return false;
     return true;
   });
 }
