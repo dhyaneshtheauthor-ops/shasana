@@ -500,7 +500,7 @@ function renderMap() {
     <div class="map-page">
       <div id="map"></div>
       <div class="map-overlays">
-        <div style="position:relative;flex:1;min-width:280px;max-width:480px">
+        <div style="position:relative;flex:1;min-width:380px;max-width:500px">
           <input type="search" id="mapSearch" placeholder="Search temple, king, place…" class="map-search" autocomplete="off">
           <div id="searchSuggest" class="search-suggest" style="display:none;position:absolute;top:100%;left:0;z-index:600;min-width:280px;margin-top:4px"></div>
         </div>
