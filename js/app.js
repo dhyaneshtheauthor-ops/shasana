@@ -315,66 +315,75 @@ function inscCard(ins) {
 
 /* KINGS */
 function renderKings() {
-  const cholas = DATA.kings.filter(k => k.dynasty === "Chola").sort((a, b) => (a.accession_year_ce || 9999) - (b.accession_year_ce || 9999));
-  const pandyas = DATA.kings.filter(k => k.dynasty === "Pandya").sort((a, b) => (a.accession_year_ce || 9999) - (b.accession_year_ce || 9999));
-  const cholaId = DATA.kings.filter(k => k.dynasty === "Chola" && !k.accession_year_ce);
-  const pandyaId = DATA.kings.filter(k => k.dynasty === "Pandya" && !k.accession_year_ce);
+  const all = DATA.kings.filter(k => k.accession_year_ce);
+  const minY = Math.min(...all.map(k => k.accession_year_ce));
+  const maxY = Math.max(...all.map(k => k.end_year_ce || k.accession_year_ce));
+  const scale = 8;
+  const height = (maxY - minY) * scale + 200;
+  const eras = [...new Set(DATA.kings.map(k => k.dynasty_branch).filter(Boolean))];
+  const hidden = new Set();
+  function pos(k) { return ((k.accession_year_ce - minY) * scale) + 60; }
   function card(k, isSub) {
-    const years = (k.accession_year_ce && k.end_year_ce) ? `${k.accession_year_ce}–${k.end_year_ce}` : (k.century || "years not known");
+    const years = `${k.accession_year_ce}–${k.end_year_ce || "?"}`;
     const count = (INDEX.byKing[k.king_id] || []).length;
     const dyn = (k.dynasty || "").toLowerCase();
-    return `<a href="#/king/${k.king_id}" class="dyn-card ${dyn}${isSub ? " sub" : ""}">
+    const top = pos(k);
+    return `<a href="#/king/${k.king_id}" class="dyn-card ${dyn}${isSub ? " sub" : ""} reveal" style="position:absolute;top:${top}px;left:8px;right:8px" data-era="${escapeHtml(k.dynasty_branch || "")}">
       <h3>${escapeHtml(k.king_name_standard)}</h3>
-      <div class="years">${escapeHtml(years)}${count ? ` · ${count}` : ""}</div>
-      ${!isSub && k.short_bio ? `<div class="bio">${escapeHtml(k.short_bio)}</div>` : ""}
+      <div class="years">${years}${count ? ` · ${count}` : ""}</div>
+      ${!isSub && k.short_bio ? `<div class="bio">${escapeHtml(k.short_bio.slice(0, 80))}</div>` : ""}
     </a>`;
   }
-  function lane(kings, dyn) {
-    const primary = kings.filter(k => k.ruling_status !== "subsidiary" && k.accession_year_ce);
-    const sub = kings.filter(k => k.ruling_status === "subsidiary");
-    return primary.map(k => {
-      const subs = sub.filter(s => s.predecessor === k.king_name_standard || (s.accession_year_ce >= k.accession_year_ce && s.accession_year_ce <= (k.end_year_ce || k.accession_year_ce)));
-      return card(k, false) + subs.map(s => card(s, true)).join("");
-    }).join("");
+  function lane(dyn) {
+    const kings = DATA.kings.filter(k => k.dynasty === dyn && k.accession_year_ce);
+    const primary = kings.filter(k => k.ruling_status !== "subsidiary");
+    return primary.map(k => card(k, false)).join("");
+  }
+  const yearMarks = [];
+  for (let y = Math.ceil(minY / 50) * 50; y <= maxY; y += 50) {
+    yearMarks.push(`<div class="dyn-year-label" style="top:${(y - minY) * scale + 60}px">${y}</div>`);
   }
   $app().innerHTML = `
     <div class="dyn-page">
       <h2>Dynasties</h2>
+      <div class="dyn-era-toggles">${eras.map(e => `<button data-era="${escapeHtml(e)}">${escapeHtml(e)}</button>`).join("")}</div>
       <div class="dyn-switch">
         <button class="active" data-mode="both">Both</button>
         <button data-mode="chola">Chola</button>
         <button data-mode="pandya">Pandya</button>
       </div>
-      <div class="dyn-timeline" id="dynTl">
-        <div class="dyn-lane">
-          <div class="dyn-lane-header chola"><img src="images/icons/chola_emblem.png" alt="" width="28" height="28"> Chola</div>
-          ${lane(cholas, "chola")}
-        </div>
-        <div class="dyn-axis"><div class="dyn-axis-line"></div></div>
-        <div class="dyn-lane">
-          <div class="dyn-lane-header pandya"><img src="images/icons/pandya_emblem.png" alt="" width="28" height="28"> Pandya</div>
-          ${lane(pandyas, "pandya")}
-        </div>
+      <div class="dyn-timeline" id="dynTl" style="height:${height}px">
+        <div class="dyn-lane" style="height:${height}px">${lane("Chola")}</div>
+        <div class="dyn-axis" style="height:${height}px"><div class="dyn-axis-line"></div>${yearMarks.join("")}</div>
+        <div class="dyn-lane" style="height:${height}px">${lane("Pandya")}</div>
       </div>
-      ${(cholaId.length || pandyaId.length) ? `
-      <div class="dyn-unidentified">
-        ${cholaId.length ? `<a href="#/king/unidentified" class="dyn-card chola"><h3>Unidentified Chola</h3><div class="years">years not known · ${cholaId.reduce((s,k) => s + (INDEX.byKing[k.king_id]||[]).length, 0)}</div></a>` : ""}
-        ${pandyaId.length ? `<a href="#/king/unidentified" class="dyn-card pandya"><h3>Unidentified Pandya</h3><div class="years">years not known · ${pandyaId.reduce((s,k) => s + (INDEX.byKing[k.king_id]||[]).length, 0)}</div></a>` : ""}
-      </div>` : ""}
     </div>
   `;
+  document.querySelectorAll(".dyn-era-toggles button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const era = btn.dataset.era;
+      if (hidden.has(era)) hidden.delete(era); else hidden.add(era);
+      btn.classList.toggle("off", hidden.has(era));
+      document.querySelectorAll(".dyn-card").forEach(c => {
+        c.style.display = hidden.has(c.dataset.era) ? "none" : "";
+      });
+    });
+  });
   document.querySelectorAll(".dyn-switch button").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".dyn-switch button").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       const mode = btn.dataset.mode;
-      const tl = document.getElementById("dynTl");
-      tl.classList.toggle("single", mode !== "both");
-      tl.querySelectorAll(".dyn-lane").forEach((lane, i) => {
-        lane.style.display = (mode === "both" || (mode === "chola" && i === 0) || (mode === "pandya" && i === 2)) ? "" : "none";
-      });
+      const lanes = document.querySelectorAll(".dyn-lane");
+      lanes[0].style.display = (mode === "pandya") ? "none" : "";
+      lanes[1].style.display = (mode === "chola") ? "none" : "";
     });
   });
+  const cards = document.querySelectorAll(".dyn-card.reveal");
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .1 });
+    cards.forEach(c => io.observe(c));
+  } else cards.forEach(c => c.classList.add("in"));
 }
 
 function kingCard(k) {
