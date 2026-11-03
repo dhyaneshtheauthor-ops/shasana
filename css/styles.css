@@ -569,7 +569,7 @@ details summary::-webkit-details-marker { display: none; }
 .king-page { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; align-items: start; }
 @media (max-width: 800px) { .king-page { grid-template-columns: 1fr; } }
 .king-sidebar { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
-.king-sidebar .portrait { width: 140px; height: 175px; object-fit: cover; border-radius: 70px 70px 8px 8px; border: 2px solid var(--gold); display: block; margin: 0 auto 16px; }
+.king-sidebar .portrait { width: 140px; height: 175px; object-fit: cover; border-radius: 8px; border: 2px solid var(--gold); display: block; margin: 0 auto 16px; }
 .king-sidebar h2 { margin: 8px 0 4px; text-align: center; }
 .king-sidebar p { text-align: center; }
 .king-insc-col { min-width: 0; }
