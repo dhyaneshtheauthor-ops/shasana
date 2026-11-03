@@ -579,3 +579,29 @@ details summary::-webkit-details-marker { display: none; }
   .king-sidebar .portrait { width: 100px; height: 125px; float: left; margin: 0 16px 16px 0; }
 }
 
+/* Dynasty timeline */
+.dyn-page { max-width: 1100px; margin: 0 auto; }
+.dyn-switch { display: none; gap: 8px; margin-bottom: 16px; }
+@media (max-width: 700px) { .dyn-switch { display: flex; } }
+.dyn-switch button { flex: 1; padding: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 8px; cursor: pointer; }
+.dyn-switch button.active { background: var(--gold); color: #1C1A18; }
+.dyn-timeline { display: grid; grid-template-columns: 1fr 80px 1fr; gap: 0; position: relative; }
+@media (max-width: 700px) { .dyn-timeline.single { grid-template-columns: 1fr; } .dyn-timeline.single .dyn-axis { display: none; } }
+.dyn-lane { position: relative; }
+.dyn-lane-header { display: flex; align-items: center; gap: 8px; padding: 12px; background: var(--card); border-radius: 12px; margin-bottom: 16px; position: sticky; top: 72px; z-index: 10; }
+.dyn-lane-header.chola { border-left: 4px solid var(--kumkum); }
+.dyn-lane-header.pandya { border-left: 4px solid var(--verdigris); }
+.dyn-axis { position: relative; }
+.dyn-axis-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--border); }
+.dyn-year-label { position: absolute; left: 50%; transform: translateX(-50%); font-size: .75rem; color: var(--muted); background: var(--bg); padding: 2px 6px; }
+.dyn-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px; text-decoration: none; color: inherit; display: block; }
+.dyn-card:hover { border-color: var(--gold); text-decoration: none; }
+.dyn-card.chola { border-left: 3px solid var(--kumkum); }
+.dyn-card.pandya { border-left: 3px solid var(--verdigris); }
+.dyn-card.sub { padding: 8px 12px; font-size: .9rem; opacity: .85; margin-left: 16px; }
+.dyn-card h3 { margin: 0 0 4px; font-size: 1rem; }
+.dyn-card .years { font-size: .85rem; color: var(--muted); }
+.dyn-card .bio { font-size: .85rem; margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.dyn-unidentified { margin-top: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 700px) { .dyn-unidentified { grid-template-columns: 1fr; } }
+.dyn-unidentified .dyn-card { border-style: dashed; }
