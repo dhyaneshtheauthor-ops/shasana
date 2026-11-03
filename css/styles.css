@@ -510,7 +510,11 @@ details summary::-webkit-details-marker { display: none; }
   font-size: .95rem;
   box-shadow: 0 2px 8px rgba(0,0,0,.15);
 }
-.map-search { flex: 1; min-width: 180px; max-width: 320px; }
+.map-search {
+  min-width: 280px !important;
+  max-width: 480px !important;
+  width: 100%;
+}
 .timeline-bar {
   position: absolute;
   bottom: 16px;
