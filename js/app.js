@@ -512,6 +512,7 @@ function renderMap() {
       <div id="pinCard" class="pin-card" style="display:none"></div>
       <div class="timeline-bar" id="timelineBar">${timeline}</div>
     </div>
+    `;
   initFullMap();
   document.getElementById("mapSearch").addEventListener("input", onSearchInput);
   document.getElementById("mapDynasty").addEventListener("change", applyFilters);
