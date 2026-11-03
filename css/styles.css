@@ -588,9 +588,12 @@ details summary::-webkit-details-marker { display: none; }
 .dyn-timeline { display: grid; grid-template-columns: 1fr 80px 1fr; gap: 0; position: relative; }
 @media (max-width: 700px) { .dyn-timeline.single { grid-template-columns: 1fr; } .dyn-timeline.single .dyn-axis { display: none; } }
 .dyn-lane { position: relative; }
-.dyn-lane-header { display: flex; align-items: center; gap: 8px; padding: 12px; background: var(--card); border-radius: 12px; margin-bottom: 16px; position: sticky; top: 72px; z-index: 10; }
-.dyn-lane-header.chola { border-left: 4px solid var(--kumkum); }
-.dyn-lane-header.pandya { border-left: 4px solid var(--verdigris); }
+.dyn-lane-header { display: flex; align-items: center; gap: 8px; padding: 12px; background: var(--card); border-radius: 12px; margin-bottom: 16px; position: sticky; top: 72px; z-index: 20; }
+.dyn-branch-toggle { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: .85rem; }
+.dyn-branch-toggle::before { content: "▼"; font-size: .7rem; }
+.dyn-branch-toggle.collapsed::before { content: "▶"; }
+.dyn-card .bio { font-size: .85rem; margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.dyn-card .bio::after { content: "…"; }
 .dyn-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 0; text-decoration: none; color: inherit; display: block; transition: border-color .2s, transform .2s; }
 .dyn-card:hover { text-decoration: none; }
 .dyn-card.chola:hover { border-color: var(--kumkum); }
