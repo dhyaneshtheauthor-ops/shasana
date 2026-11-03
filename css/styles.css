@@ -470,3 +470,6 @@ body {
   transition: transform .3s var(--ease), border-color .3s;
 }
 .card:hover { transform: translateY(-2px); }
+body { font-family: "Manrope", "Noto Sans Tamil", system-ui, sans-serif; }
+details summary { list-style: none; }
+details summary::-webkit-details-marker { display: none; }
