@@ -435,3 +435,38 @@ header.site {
   border: 2px solid #fff;
   box-shadow: 0 2px 6px rgba(0,0,0,.4);
 }
+/* Refined palette from Claude's suggestions */
+:root {
+  --gold-text: #C99A3B;
+  --glass: rgba(36,33,30,.72);
+  --ease: cubic-bezier(.22,1,.36,1);
+}
+[data-theme="light"] {
+  --gold-text: #7A5611;
+  --glass: rgba(247,238,216,.72);
+}
+body {
+  font-family: "Manrope", "Noto Sans Tamil", system-ui, sans-serif;
+}
+.hero h2 {
+  background: linear-gradient(90deg, var(--text), var(--muted));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--gold);
+  color: #1C1A18;
+  font-weight: 600;
+  transition: transform .3s var(--ease), opacity .3s;
+}
+.btn:hover { opacity: .9; transform: translateY(-2px); text-decoration: none; }
+.card {
+  transition: transform .3s var(--ease), border-color .3s;
+}
+.card:hover { transform: translateY(-2px); }
