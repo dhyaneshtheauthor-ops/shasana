@@ -141,42 +141,59 @@ function renderHome() {
   const totalInsc = DATA.inscriptions.length;
   const totalTemples = INDEX.temples.length;
   const totalKings = DATA.kings.length;
-  const centuries = new Set(DATA.inscriptions.map(i => i.century).filter(Boolean)).size;
-  const featured = INDEX.temples.slice(0, 6);
+  const years = new Set(DATA.inscriptions.map(i => i.arie_year).filter(Boolean)).size;
   $app().innerHTML = `
-    <section class="hero hero-full" style="background-image: linear-gradient(180deg, rgba(28,26,24,.45), rgba(28,26,24,.75)), url('images/website_header.png');">
-      <h2 id="heroText" style="font-size:clamp(2rem,5vw,3rem);max-width:720px;margin:0 auto 12px"></h2>
-      <p class="muted" style="max-width:560px;margin:0 auto 20px">Search temples, kings and dynasties across Tamil Nadu. Open any pin to see the temple and the king behind it.</p>
-      <div class="search-wrap">
-        <input type="search" id="homeSearch" placeholder="Search king, temple, place, or keyword…" autocomplete="off">
-      </div>
-      <a href="#/map" class="btn" style="margin-top:12px">Open the interactive map →</a>
+    <section class="hero" style="min-height:60vh;padding:80px 20px 40px;text-align:center">
+      <h2 id="heroText" style="font-size:clamp(2rem,5vw,3.2rem);max-width:720px;margin:0 auto 16px;font-weight:600"></h2>
+      <p class="muted" style="max-width:560px;margin:0 auto 24px;font-size:1.1rem">Search temples, kings and dynasties across Tamil Nadu. Open any pin to see the temple and the king behind it.</p>
+      <a href="#/map" class="btn" style="display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:8px;background:var(--gold);color:#1C1A18;font-weight:600;text-decoration:none">Open the interactive map →</a>
+      <p class="muted" style="margin-top:12px;font-size:.9rem">${totalInsc} inscriptions across ${totalTemples} temples and ${totalKings} kings</p>
     </section>
+
     <div class="stats">
       <div class="stat"><div class="num">${totalInsc}</div><div class="lbl">Inscriptions</div></div>
       <div class="stat"><div class="num">${totalTemples}</div><div class="lbl">Temples</div></div>
       <div class="stat"><div class="num">${totalKings}</div><div class="lbl">Kings</div></div>
-      <div class="stat"><div class="num">${centuries}</div><div class="lbl">Centuries</div></div>
+      <div class="stat"><div class="num">${years}</div><div class="lbl">ARIE years</div></div>
     </div>
-    <h3 class="section-title">Featured temples</h3>
-    <div class="hscroll">${featured.map(t => templeCard(t)).join("")}</div>
-    <h3 class="section-title">Browse by dynasty</h3>
-    <div class="dynasty-row">
-      <div class="dynasty-card pandya" onclick="location.hash='#/kings'">
-        <div class="emblem"><img src="images/icons/pandya_emblem.png" alt="Pandya" width="48" height="48"></div>
-        <h3>Pandya</h3>
-        <p class="muted">${DATA.kings.length} kings recorded</p>
+
+    <section style="padding:40px 0">
+      <h3 class="section-title">Find the record, the temple and the king together</h3>
+      <div class="grid" style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+        <div class="card" style="padding:24px"><h3 style="margin:0 0 8px">Find any temple fast</h3><p class="muted">Click a pin to see its king and period.</p></div>
+        <div class="card" style="padding:24px"><h3 style="margin:0 0 8px">Trace a dynasty</h3><p class="muted">Chola and Pandya lists sit side by side, so you can compare reigns.</p></div>
+        <div class="card" style="padding:24px"><h3 style="margin:0 0 8px">Know the king behind the record</h3><p class="muted">Each ruler page links to the temples tied to that king.</p></div>
+        <div class="card" style="padding:24px"><h3 style="margin:0 0 8px">Browse by place</h3><p class="muted">Start from a district or a temple town you already know.</p></div>
       </div>
-      <div class="dynasty-card chola" onclick="location.hash='#/kings'">
-        <div class="emblem"><img src="images/icons/chola_emblem.png" alt="Chola" width="48" height="48"></div>
-        <h3>Chola</h3>
-        <p class="muted">Coming soon</p>
+    </section>
+
+    <section style="padding:40px 0">
+      <h3 class="section-title">How it works</h3>
+      <div class="grid" style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+        <div class="card" style="padding:24px"><span class="muted" style="font-size:.8rem;font-weight:600">STEP 1</span><h3 style="margin:8px 0">Open the map</h3><p class="muted">Pick a region or search a temple name.</p></div>
+        <div class="card" style="padding:24px"><span class="muted" style="font-size:.8rem;font-weight:600">STEP 2</span><h3 style="margin:8px 0">Choose a temple or a king</h3><p class="muted">Details open beside the map.</p></div>
+        <div class="card" style="padding:24px"><span class="muted" style="font-size:.8rem;font-weight:600">STEP 3</span><h3 style="margin:8px 0">Follow the links</h3><p class="muted">Jump to related temples, rulers and dynastic lists.</p></div>
       </div>
-    </div>
+    </section>
+
+    <section style="padding:40px 0">
+      <h3 class="section-title">Questions people ask</h3>
+      <div style="max-width:720px">
+        <details class="card" style="padding:16px 20px;margin-bottom:8px"><summary style="cursor:pointer;font-weight:600">What does the database cover?</summary><p class="muted" style="margin-top:8px">Chola and Pandya inscriptions. The first release is built from a sample volume of the Annual Report on Indian Epigraphy.</p></details>
+        <details class="card" style="padding:16px 20px;margin-bottom:8px"><summary style="cursor:pointer;font-weight:600">Where do the records come from?</summary><p class="muted" style="margin-top:8px">They are indexed from the Annual Report on Indian Epigraphy (ARIE). More volumes will be added over time.</p></details>
+        <details class="card" style="padding:16px 20px;margin-bottom:8px"><summary style="cursor:pointer;font-weight:600">Is this a finished database?</summary><p class="muted" style="margin-top:8px">No. This is a preliminary version. The map, the counts and the dynastic lists are still being built.</p></details>
+        <details class="card" style="padding:16px 20px;margin-bottom:8px"><summary style="cursor:pointer;font-weight:600">Do I need an account?</summary><p class="muted" style="margin-top:8px">No. You can open the map and every record without signing in.</p></details>
+      </div>
+    </section>
+
+    <section style="text-align:center;padding:40px 0">
+      <div class="card" style="padding:40px 24px;max-width:640px;margin:0 auto">
+        <h3 style="margin:0 0 12px">Start with the map</h3>
+        <p class="muted">Pick a temple, meet the king, and read what was recorded.</p>
+        <a href="#/map" class="btn" style="display:inline-block;margin-top:16px;padding:12px 20px;border-radius:8px;background:var(--gold);color:#1C1A18;font-weight:600;text-decoration:none">Open the interactive map →</a>
+      </div>
+    </section>
   `;
-  document.getElementById("homeSearch").addEventListener("keydown", e => {
-    if (e.key === "Enter") location.hash = "#/search?q=" + encodeURIComponent(e.target.value);
-  });
   typewriter("heroText", "Every Chola and Pandya inscription, placed on one map");
 }
 
