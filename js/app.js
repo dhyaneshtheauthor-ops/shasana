@@ -651,9 +651,13 @@ function refreshMarkers() {
       const lat = group.reduce((s, p) => s + p.t.lat, 0) / group.length;
       const lng = group.reduce((s, p) => s + p.t.lng, 0) / group.length;
       const size = Math.min(64, 28 + total);
+      const size = Math.min(64, 28 + total);
+      const pandya = group.reduce((s, p) => s + p.pandya, 0);
+      const pct = total ? Math.round((pandya / total) * 100) : 0;
+      const bg = `conic-gradient(#3F7D6E 0 ${pct}%, #A3301F ${pct}% 100%)`;
       const icon = L.divIcon({
         className: "",
-        html: `<div class="map-pin" style="width:${size}px;height:${size}px;background:#3F7D6E">${total}</div>`,
+        html: `<div class="map-pin" style="width:${size}px;height:${size}px;background:${bg}">${total}</div>`,
         iconSize: [size, size], iconAnchor: [size/2, size/2]
       });
       const m = L.marker([lat, lng], { icon }).addTo(mapInstance);
@@ -665,12 +669,9 @@ function refreshMarkers() {
       const size = Math.min(56, Math.max(28, 20 + p.count * 2));
       const pct = p.count ? Math.round((p.pandya / p.count) * 100) : 0;
       const bg = `conic-gradient(#3F7D6E 0 ${pct}%, #A3301F ${pct}% 100%)`;
-      const pandya = group.reduce((s, p) => s + p.pandya, 0);
-      const pct = total ? Math.round((pandya / total) * 100) : 0;
-      const bg = `conic-gradient(#3F7D6E 0 ${pct}%, #A3301F ${pct}% 100%)`;
       const icon = L.divIcon({
         className: "",
-        html: `<div class="map-pin" style="width:${size}px;height:${size}px;background:${bg}">${total}</div>`,
+        html: `<div class="map-pin" style="width:${size}px;height:${size}px;background:${bg}">${p.count}</div>`,
         iconSize: [size, size], iconAnchor: [size/2, size/2]
       });
       const m = L.marker([p.t.lat, p.t.lng], { icon }).addTo(mapInstance);
