@@ -413,6 +413,12 @@ header.site {
   position: relative;
   z-index: 1;
   text-shadow: 0 1px 2px rgba(0,0,0,.5);
+  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .tl-dot::before {
   content: "";
@@ -425,14 +431,10 @@ header.site {
   opacity: .4;
   background: transparent;
 }
+.tl-dot::before { display: none; }
 .tl-dot.active {
-  color: var(--gold);
-}
-.tl-dot.active::before {
-  width: 52px; height: 52px;
-  border-color: var(--gold);
+  border: 3px solid var(--gold);
   box-shadow: 0 0 12px rgba(201,154,59,.6);
-  opacity: 1;
 }
 .tl-dot:hover { color: var(--text); }
 .map-pin {
