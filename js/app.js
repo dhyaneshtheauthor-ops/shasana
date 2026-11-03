@@ -315,20 +315,65 @@ function inscCard(ins) {
 
 /* KINGS */
 function renderKings() {
-  const sorted = [...DATA.kings].sort((a,b) => (a.sort_order||0) - (b.sort_order||0));
+  const cholas = DATA.kings.filter(k => k.dynasty === "Chola").sort((a, b) => (a.accession_year_ce || 9999) - (b.accession_year_ce || 9999));
+  const pandyas = DATA.kings.filter(k => k.dynasty === "Pandya").sort((a, b) => (a.accession_year_ce || 9999) - (b.accession_year_ce || 9999));
+  const cholaId = DATA.kings.filter(k => k.dynasty === "Chola" && !k.accession_year_ce);
+  const pandyaId = DATA.kings.filter(k => k.dynasty === "Pandya" && !k.accession_year_ce);
+  function card(k, isSub) {
+    const years = (k.accession_year_ce && k.end_year_ce) ? `${k.accession_year_ce}–${k.end_year_ce}` : (k.century || "years not known");
+    const count = (INDEX.byKing[k.king_id] || []).length;
+    const dyn = (k.dynasty || "").toLowerCase();
+    return `<a href="#/king/${k.king_id}" class="dyn-card ${dyn}${isSub ? " sub" : ""}">
+      <h3>${escapeHtml(k.king_name_standard)}</h3>
+      <div class="years">${escapeHtml(years)}${count ? ` · ${count}` : ""}</div>
+      ${!isSub && k.short_bio ? `<div class="bio">${escapeHtml(k.short_bio)}</div>` : ""}
+    </a>`;
+  }
+  function lane(kings, dyn) {
+    const primary = kings.filter(k => k.ruling_status !== "subsidiary" && k.accession_year_ce);
+    const sub = kings.filter(k => k.ruling_status === "subsidiary");
+    return primary.map(k => {
+      const subs = sub.filter(s => s.predecessor === k.king_name_standard || (s.accession_year_ce >= k.accession_year_ce && s.accession_year_ce <= (k.end_year_ce || k.accession_year_ce)));
+      return card(k, false) + subs.map(s => card(s, true)).join("");
+    }).join("");
+  }
   $app().innerHTML = `
-    <h2><img src="images/icons/pandya_emblem.png" alt="" width="36" height="36" style="vertical-align:middle;margin-right:8px">Pandya Dynasty</h2>    <div class="timeline-scroll" id="tl">${sorted.filter(k=>k.accession_year_ce).map(k => {
-      const span = Math.max(1, (k.end_year_ce||k.accession_year_ce) - k.accession_year_ce);
-      return `<div class="tl-bar" style="height:${20+Math.min(span,40)}px" title="${escapeHtml(k.king_name_standard)}" onclick="document.getElementById('k-${k.king_id}')?.scrollIntoView({behavior:'smooth'})">${span}</div>`;
-    }).join("")}</div>
-    <div class="search-wrap" style="max-width:100%;margin:12px 0">
-      <input type="search" id="kingSearch" placeholder="Find a king…">
+    <div class="dyn-page">
+      <h2>Dynasties</h2>
+      <div class="dyn-switch">
+        <button class="active" data-mode="both">Both</button>
+        <button data-mode="chola">Chola</button>
+        <button data-mode="pandya">Pandya</button>
+      </div>
+      <div class="dyn-timeline" id="dynTl">
+        <div class="dyn-lane">
+          <div class="dyn-lane-header chola"><img src="images/icons/chola_emblem.png" alt="" width="28" height="28"> Chola</div>
+          ${lane(cholas, "chola")}
+        </div>
+        <div class="dyn-axis"><div class="dyn-axis-line"></div></div>
+        <div class="dyn-lane">
+          <div class="dyn-lane-header pandya"><img src="images/icons/pandya_emblem.png" alt="" width="28" height="28"> Pandya</div>
+          ${lane(pandyas, "pandya")}
+        </div>
+      </div>
+      ${(cholaId.length || pandyaId.length) ? `
+      <div class="dyn-unidentified">
+        ${cholaId.length ? `<a href="#/king/unidentified" class="dyn-card chola"><h3>Unidentified Chola</h3><div class="years">years not known · ${cholaId.reduce((s,k) => s + (INDEX.byKing[k.king_id]||[]).length, 0)}</div></a>` : ""}
+        ${pandyaId.length ? `<a href="#/king/unidentified" class="dyn-card pandya"><h3>Unidentified Pandya</h3><div class="years">years not known · ${pandyaId.reduce((s,k) => s + (INDEX.byKing[k.king_id]||[]).length, 0)}</div></a>` : ""}
+      </div>` : ""}
     </div>
-    <div id="kingList">${sorted.map(k => kingCard(k)).join("")}</div>
   `;
-  document.getElementById("kingSearch").addEventListener("input", e => {
-    const s = e.target.value.toLowerCase();
-    document.querySelectorAll("#kingList .card").forEach(c => c.style.display = c.textContent.toLowerCase().includes(s) ? "" : "none");
+  document.querySelectorAll(".dyn-switch button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".dyn-switch button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const mode = btn.dataset.mode;
+      const tl = document.getElementById("dynTl");
+      tl.classList.toggle("single", mode !== "both");
+      tl.querySelectorAll(".dyn-lane").forEach((lane, i) => {
+        lane.style.display = (mode === "both" || (mode === "chola" && i === 0) || (mode === "pandya" && i === 2)) ? "" : "none";
+      });
+    });
   });
 }
 
