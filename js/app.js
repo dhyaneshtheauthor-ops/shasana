@@ -561,6 +561,7 @@ function showSuggestions(q) {
           refreshMarkers();
           showTempleCard(t, null);
         }
+      });
   });
   DATA.kings.forEach(k => {
     if ((INDEX.byKing[k.king_id] || []).length && (k.king_name_standard || "").toLowerCase().includes(q))
