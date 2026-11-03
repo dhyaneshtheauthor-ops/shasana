@@ -143,13 +143,14 @@ function renderHome() {
   const totalKings = DATA.kings.length;
   const centuries = new Set(DATA.inscriptions.map(i => i.century).filter(Boolean)).size;
   const featured = INDEX.temples.slice(0, 6);
-  const featuredIns = DATA.inscriptions[Math.floor(Math.random() * Math.min(DATA.inscriptions.length, 20))] || DATA.inscriptions[0];
   $app().innerHTML = `
     <section class="hero hero-full" style="background-image: linear-gradient(180deg, rgba(28,26,24,.45), rgba(28,26,24,.75)), url('images/website_header.png');">
-      <h2 id="heroText"></h2>
+      <h2 id="heroText" style="font-size:clamp(2rem,5vw,3rem);max-width:720px;margin:0 auto 12px"></h2>
+      <p class="muted" style="max-width:560px;margin:0 auto 20px">Search temples, kings and dynasties across Tamil Nadu. Open any pin to see the temple and the king behind it.</p>
       <div class="search-wrap">
         <input type="search" id="homeSearch" placeholder="Search king, temple, place, or keyword…" autocomplete="off">
       </div>
+      <a href="#/map" class="btn" style="margin-top:12px">Open the interactive map →</a>
     </section>
     <div class="stats">
       <div class="stat"><div class="num">${totalInsc}</div><div class="lbl">Inscriptions</div></div>
@@ -157,19 +158,8 @@ function renderHome() {
       <div class="stat"><div class="num">${totalKings}</div><div class="lbl">Kings</div></div>
       <div class="stat"><div class="num">${centuries}</div><div class="lbl">Centuries</div></div>
     </div>
-    <div id="homeMap" style="height:320px;border-radius:12px;overflow:hidden;border:1px solid var(--border);margin:16px 0"></div>
-    <p class="center"><a href="#/map" class="btn" style="display:inline-block;background:var(--kumkum);color:#fff;padding:10px 20px;border-radius:8px;font-weight:600">Open full map</a></p>
     <h3 class="section-title">Featured temples</h3>
     <div class="hscroll">${featured.map(t => templeCard(t)).join("")}</div>
-    ${featuredIns ? `
-    <h3 class="section-title">Inscription of the day</h3>
-    <div class="insc-card">
-      <span class="are-badge">${escapeHtml(featuredIns.arie_no||"")}</span>
-      <h3 style="margin:8px 0 4px">${escapeHtml(featuredIns.temple||"Temple not recorded")}</h3>
-      <p class="muted">${escapeHtml((featuredIns.remarks||"").slice(0,180))}${(featuredIns.remarks||"").length>180?"…":""}</p>
-      <p class="muted">${escapeHtml(featuredIns.king||"")} · ${escapeHtml(featuredIns.temple_place||"")}</p>
-      <a href="#/inscription/${encodeURIComponent(featuredIns.arie_id)}">View inscription →</a>
-    </div>` : ""}
     <h3 class="section-title">Browse by dynasty</h3>
     <div class="dynasty-row">
       <div class="dynasty-card pandya" onclick="location.hash='#/kings'">
@@ -187,8 +177,7 @@ function renderHome() {
   document.getElementById("homeSearch").addEventListener("keydown", e => {
     if (e.key === "Enter") location.hash = "#/search?q=" + encodeURIComponent(e.target.value);
   });
-  typewriter("heroText", "Explore Ancient India like Never Before");
-  initMiniMap();
+  typewriter("heroText", "Every Chola and Pandya inscription, placed on one map");
 }
 
 function templeCard(t) {
