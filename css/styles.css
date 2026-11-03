@@ -404,14 +404,15 @@ header.site {
 .tl-dot {
   background: transparent;
   border: none;
-  color: var(--muted);
-  font-size: .85rem;
+  color: var(--text);
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
-  padding: 10px 16px;
+  padding: 12px 18px;
   position: relative;
   z-index: 1;
+  text-shadow: 0 1px 2px rgba(0,0,0,.5);
 }
 .tl-dot::before {
   content: "";
@@ -428,9 +429,9 @@ header.site {
   color: var(--gold);
 }
 .tl-dot.active::before {
-  width: 36px; height: 36px;
+  width: 52px; height: 52px;
   border-color: var(--gold);
-  box-shadow: 0 0 8px rgba(201,154,59,.5);
+  box-shadow: 0 0 12px rgba(201,154,59,.6);
   opacity: 1;
 }
 .tl-dot:hover { color: var(--text); }
