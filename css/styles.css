@@ -540,16 +540,17 @@ details summary::-webkit-details-marker { display: none; }
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 8px 24px rgba(0,0,0,.3);
-  [data-theme="light"] .tl-dot { background: #f7eed8; color: #2A2118; }
-  [data-theme="light"] .tl-dot.active { border-color: var(--gold); }
-  .map-search, .map-filters select, .map-overlays select {
-    background: #f5f0e6 !important;
-    color: #1C1A18 !important;
-  }
-  [data-theme="light"] .map-search,
-  [data-theme="light"] .map-overlays select {
-    background: #fffef8 !important;
-    color: #2A2118 !important;
+}
+[data-theme="light"] .tl-dot { background: #f7eed8; color: #2A2118; }
+[data-theme="light"] .tl-dot.active { border-color: var(--gold); }
+.map-search, .map-filters select, .map-overlays select {
+  background: #f5f0e6 !important;
+  color: #1C1A18 !important;
+}
+[data-theme="light"] .map-search,
+[data-theme="light"] .map-overlays select {
+  background: #fffef8 !important;
+  color: #2A2118 !important;
 }
 @media (max-width: 700px) {
   .pin-card { top: auto; bottom: 90px; right: 12px; left: 12px; width: auto; max-height: 40vh; }
