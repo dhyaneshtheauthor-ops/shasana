@@ -651,7 +651,6 @@ function refreshMarkers() {
       const lat = group.reduce((s, p) => s + p.t.lat, 0) / group.length;
       const lng = group.reduce((s, p) => s + p.t.lng, 0) / group.length;
       const size = Math.min(64, 28 + total);
-      const size = Math.min(64, 28 + total);
       const pandya = group.reduce((s, p) => s + p.pandya, 0);
       const pct = total ? Math.round((pandya / total) * 100) : 0;
       const bg = `conic-gradient(#3F7D6E 0 ${pct}%, #A3301F ${pct}% 100%)`;
