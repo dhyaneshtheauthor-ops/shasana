@@ -361,9 +361,7 @@ function renderKing(id) {
     <p><a href="#/kings">← Dynasty</a></p>
     <div class="king-layout">
       <div>
-        const portrait = k.image
-          ? `<img src="${escapeHtml(k.image)}.webp" alt="${escapeHtml(k.king_name_standard)}" style="width:200px;height:250px;object-fit:cover;border-radius:12px;margin-bottom:16px">`
-          : placeholder(k.king_name_standard);
+        const portrait = k.image ? `<img src="${escapeHtml(k.image)}.png" alt="${escapeHtml(k.king_name_standard)}" style="width:200px;height:250px;object-fit:cover;border-radius:12px;margin-bottom:16px">` : placeholder(k.king_name_standard);
         <h2>${escapeHtml(k.king_name_standard)}</h2>
         <div class="king-bio">${escapeHtml(k.long_bio || k.short_bio || "")}</div>
         ${k.common_titles ? `<p class="muted">Titles: ${escapeHtml(k.common_titles)}</p>` : ""}
