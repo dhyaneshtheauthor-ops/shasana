@@ -488,7 +488,7 @@ function renderMap() {
   const timeline = centuries.map(c => {
     const label = c.replace("th century", "00s").replace("st century", "00s");
     return `<button class="tl-dot" data-cen="${escapeHtml(c)}" title="${escapeHtml(c)}">${label}</button>`;
-  }).join("");
+}).join("");
   $app().innerHTML = `
     <div class="map-filters" style="position:relative">
       <input type="search" id="mapSearch" placeholder="Search temple, king, place, district, or ARIE number…" class="map-search" autocomplete="off">
