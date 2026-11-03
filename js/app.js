@@ -355,59 +355,77 @@ function kingCard(k) {
 function renderKing(id) {
   const k = DATA.kings.find(x => x.king_id === id);
   if (!k) { $app().innerHTML = "<p>King not found.</p>"; return; }
-  const insc = (INDEX.byKing[id] || []).sort((a, b) => (a.date_identified || "").localeCompare(b.date_identified || ""));
+  const insc = INDEX.byKing[id] || [];
   const years = (k.accession_year_ce && k.end_year_ce) ? `${k.accession_year_ce}–${k.end_year_ce} CE` : (k.century || "");
-  const span = (k.end_year_ce && k.accession_year_ce) ? k.end_year_ce - k.accession_year_ce : null;
+  const dynastyLabel = [k.dynasty_branch, k.dynasty].filter(Boolean).join(" ");
   const dynastyKings = DATA.kings.filter(x => x.dynasty === k.dynasty && x.accession_year_ce).sort((a, b) => a.accession_year_ce - b.accession_year_ce);
   const idx = dynastyKings.findIndex(x => x.king_id === id);
   const prev = idx > 0 ? dynastyKings[idx - 1] : null;
   const next = idx >= 0 && idx < dynastyKings.length - 1 ? dynastyKings[idx + 1] : null;
   const portrait = k.image
-    ? `<img src="${escapeHtml(k.image)}" alt="${escapeHtml(k.king_name_standard)}" class="king-portrait">`
-    : `<div class="king-portrait-fallback"><img src="images/icons/${k.dynasty === "Chola" ? "chola" : "pandya"}_emblem.png" alt="" width="80" height="80"></div>`;
-  const titles = (k.common_titles || "").split(",").map(s => s.trim()).filter(Boolean);
-  const temples = [...new Map(insc.map(i => {
+    ? `<img src="${escapeHtml(k.image)}" alt="${escapeHtml(k.king_name_standard)}" class="portrait">`
+    : "";
+  const districts = [...new Set(insc.map(i => {
     const t = INDEX.temples.find(x => x.temple_id === i.temple_id);
-    return t && t.lat ? [t.temple_id, t] : null;
-  }).filter(Boolean)).values()];
-  const dynColor = k.dynasty === "Chola" ? "chola" : "pandya";
+    return t ? t.district : null;
+  }).filter(Boolean))].sort();
   $app().innerHTML = `
-    <div class="king-hero">
-      ${portrait}
-      <div class="king-hero-content">
-        <span class="muted" style="font-size:.85rem">${escapeHtml(k.dynasty || "")}</span>
+    <div class="king-page">
+      <aside class="king-sidebar">
+        <div class="king-mobile-header">
+          ${portrait}
+          <div>
+            <h2>${escapeHtml(k.king_name_standard)}</h2>
+            <p class="muted">${escapeHtml(years)}</p>
+          </div>
+        </div>
+        ${portrait}
         <h2>${escapeHtml(k.king_name_standard)}</h2>
-        ${titles.length ? `<div class="king-titles">${titles.map(t => `<span class="king-title-chip">${escapeHtml(t)}</span>`).join("")}</div>` : ""}
-        ${k.short_bio ? `<p>${escapeHtml(k.short_bio)}</p>` : ""}
-        <a href="#/map?king=${encodeURIComponent(k.king_id)}" class="btn" style="margin-top:16px;display:inline-flex;align-items:center;gap:8px;min-height:44px">See on map</a>
+        <p class="muted">${escapeHtml(years)}</p>
+        ${dynastyLabel ? `<p class="muted">${escapeHtml(dynastyLabel)}</p>` : ""}
+        ${k.short_bio ? `<p style="margin:16px 0">${escapeHtml(k.short_bio)}</p>` : ""}
+        <a href="#/map?king=${encodeURIComponent(k.king_id)}" class="btn" style="display:inline-flex;align-items:center;gap:8px;margin-top:12px;min-height:44px">See on map</a>
+      </aside>
+      <div class="king-insc-col">
+        <h3>Inscriptions (${insc.length})</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+          <input type="search" id="kSearch" placeholder="Search location, temple, year, ARIE…" style="flex:1;min-width:200px;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text)">
+          <select id="kSort" style="padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text)">
+            <option value="">All districts</option>
+            ${districts.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("")}
+          </select>
+        </div>
+        <div id="kInscList">${insc.map(ins => inscCard(ins)).join("") || `<p class="muted">No inscriptions linked.</p>`}</div>
       </div>
     </div>
-    ${dynastyKings.length > 1 ? `
-    <div class="reign-ribbon">${dynastyKings.map(dk => {
-      const w = Math.max(1, (dk.end_year_ce || dk.accession_year_ce) - dk.accession_year_ce);
-      return `<a href="#/king/${dk.king_id}" class="reign-seg${dk.king_id === id ? " active" : ""}" style="flex:${w}" title="${escapeHtml(dk.king_name_standard)} ${dk.accession_year_ce}–${dk.end_year_ce}"></a>`;
-    }).join("")}</div>
-    <p class="muted">Reign: ${escapeHtml(years)}${span ? ` (${span} years)` : ""}${prev ? ` · Prev: <a href="#/king/${prev.king_id}">${escapeHtml(prev.king_name_standard)}</a>` : ""}${next ? ` · Next: <a href="#/king/${next.king_id}">${escapeHtml(next.king_name_standard)}</a>` : ""}</p>` : ""}
-    <div class="fact-tiles">
-      <div class="fact-tile"><dt>Reign</dt><dd>${escapeHtml(years || "—")}</dd></div>
-      <div class="fact-tile"><dt>Era</dt><dd>${escapeHtml(k.dynasty_branch || "—")}</dd></div>
-      <div class="fact-tile"><dt>Inscriptions</dt><dd>${insc.length}</dd></div>
-      <div class="fact-tile"><dt>Titles</dt><dd>${titles.length || "—"}</dd></div>
+    <div class="king-nav-cards">
+      ${prev ? `<a href="#/king/${prev.king_id}">← ${escapeHtml(prev.king_name_standard)}</a>` : `<div></div>`}
+      ${next ? `<a href="#/king/${next.king_id}" style="text-align:right">${escapeHtml(next.king_name_standard)} →</a>` : `<div></div>`}
     </div>
-    <div class="king-layout-grid">
-      <div>
-      <h3 class="section-title">Inscriptions</h3>
-      ${insc.length ? insc.map(ins => inscCard(ins)).join("") : `<div class="card" style="padding:24px"><p class="muted">No inscriptions linked yet.</p></div>`}
-      </div>
-      ${temples.length ? `<aside class="king-map-col">
-        <h3 class="section-title">Where his records are found</h3>
-        <div id="kingMiniMap" style="height:240px;border-radius:16px;overflow:hidden;border:1px solid var(--border)"></div>
-        <div style="margin-top:12px">${temples.map(t => `<div style="padding:6px 0"><a href="#/temple/${encodeURIComponent(t.name + "|" + t.place)}">${escapeHtml(t.name)}</a></div>`).join("")}</div>
-      </aside>` : ""}
-    </div>
-    ${(prev || next) ? `<div style="display:flex;gap:16px;margin-top:32px">${prev ? `<a href="#/king/${prev.king_id}" class="card" style="flex:1;padding:16px;text-decoration:none;color:inherit">← ${escapeHtml(prev.king_name_standard)}</a>` : ""}${next ? `<a href="#/king/${next.king_id}" class="card" style="flex:1;padding:16px;text-decoration:none;color:inherit;text-align:right">${escapeHtml(next.king_name_standard)} →</a>` : ""}</div>` : ""}
   `;
-  if (temples.length) initKingMiniMap(temples);
+  const search = document.getElementById("kSearch");
+  const sort = document.getElementById("kSort");
+  const list = document.getElementById("kInscList");
+  function update() {
+    const q = search.value.toLowerCase();
+    const dist = sort.value;
+    let filtered = insc.filter(ins => {
+      if (dist) {
+        const t = INDEX.temples.find(x => x.temple_id === ins.temple_id);
+        if (!t || t.district !== dist) return false;
+      }
+      if (q) {
+        const blob = [ins.arie_no, ins.king, ins.location_within_temple, ins.date_raw, ins.date_identified, ins.remarks, ins.SII_notes].join(" ").toLowerCase();
+        const t = INDEX.temples.find(x => x.temple_id === ins.temple_id);
+        const tBlob = t ? [t.name, t.place, t.district].join(" ").toLowerCase() : "";
+        if (!blob.includes(q) && !tBlob.includes(q)) return false;
+      }
+      return true;
+    });
+    list.innerHTML = filtered.map(ins => inscCard(ins)).join("") || `<p class="muted">No matches.</p>`;
+  }
+  search.addEventListener("input", update);
+  sort.addEventListener("change", update);
 }
 
 function initKingMiniMap(temples) {
