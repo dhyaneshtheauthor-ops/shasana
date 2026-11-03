@@ -362,9 +362,7 @@ function renderKing(id) {
   const idx = dynastyKings.findIndex(x => x.king_id === id);
   const prev = idx > 0 ? dynastyKings[idx - 1] : null;
   const next = idx >= 0 && idx < dynastyKings.length - 1 ? dynastyKings[idx + 1] : null;
-  const portrait = k.image
-    ? `<img src="${escapeHtml(k.image)}" alt="${escapeHtml(k.king_name_standard)}" class="portrait">`
-    : "";
+  const portrait = k.image ? `<img src="${escapeHtml(k.image)}" alt="${escapeHtml(k.king_name_standard)}" class="portrait">` : "";
   const districts = [...new Set(insc.map(i => {
     const t = INDEX.temples.find(x => x.temple_id === i.temple_id);
     return t ? t.district : null;
@@ -372,27 +370,25 @@ function renderKing(id) {
   $app().innerHTML = `
     <div class="king-page">
       <aside class="king-sidebar">
-        <div class="king-mobile-header">
-          ${portrait}
-          <div>
-            <h2>${escapeHtml(k.king_name_standard)}</h2>
-            <p class="muted">${escapeHtml(years)}</p>
-          </div>
-        </div>
         ${portrait}
         <h2>${escapeHtml(k.king_name_standard)}</h2>
         <p class="muted">${escapeHtml(years)}</p>
         ${dynastyLabel ? `<p class="muted">${escapeHtml(dynastyLabel)}</p>` : ""}
-        ${k.short_bio ? `<p style="margin:16px 0">${escapeHtml(k.short_bio)}</p>` : ""}
-        <a href="#/map?king=${encodeURIComponent(k.king_id)}" class="btn" style="display:inline-flex;align-items:center;gap:8px;margin-top:12px;min-height:44px">See on map</a>
+        ${k.short_bio ? `<p style="margin:16px 0;text-align:left">${escapeHtml(k.short_bio)}</p>` : ""}
+        <div style="text-align:center"><a href="#/map?king=${encodeURIComponent(k.king_id)}" class="btn" style="display:inline-flex;align-items:center;gap:8px;margin-top:12px;min-height:44px">See on map</a></div>
       </aside>
       <div class="king-insc-col">
         <h3>Inscriptions (${insc.length})</h3>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
-          <input type="search" id="kSearch" placeholder="Search location, temple, year, ARIE…" style="flex:1;min-width:200px;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text)">
-          <select id="kSort" style="padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text)">
+          <input type="search" id="kSearch" placeholder="Search…" style="flex:1;min-width:160px;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text)">
+          <select id="kDistrict" style="padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text)">
             <option value="">All districts</option>
             ${districts.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("")}
+          </select>
+          <select id="kSort" style="padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text)">
+            <option value="">Default</option>
+            <option value="date">By date</option>
+            <option value="arie">By ARIE number</option>
           </select>
         </div>
         <div id="kInscList">${insc.map(ins => inscCard(ins)).join("") || `<p class="muted">No inscriptions linked.</p>`}</div>
@@ -404,27 +400,30 @@ function renderKing(id) {
     </div>
   `;
   const search = document.getElementById("kSearch");
+  const dist = document.getElementById("kDistrict");
   const sort = document.getElementById("kSort");
   const list = document.getElementById("kInscList");
   function update() {
     const q = search.value.toLowerCase();
-    const dist = sort.value;
+    const d = dist.value;
     let filtered = insc.filter(ins => {
-      if (dist) {
+      if (d) {
         const t = INDEX.temples.find(x => x.temple_id === ins.temple_id);
-        if (!t || t.district !== dist) return false;
+        if (!t || t.district !== d) return false;
       }
       if (q) {
-        const blob = [ins.arie_no, ins.king, ins.location_within_temple, ins.date_raw, ins.date_identified, ins.remarks, ins.SII_notes].join(" ").toLowerCase();
         const t = INDEX.temples.find(x => x.temple_id === ins.temple_id);
-        const tBlob = t ? [t.name, t.place, t.district].join(" ").toLowerCase() : "";
-        if (!blob.includes(q) && !tBlob.includes(q)) return false;
+        const blob = [ins.arie_no, ins.king, ins.location_within_temple, ins.date_raw, ins.date_identified, ins.remarks, ins.SII_notes, t ? t.name + " " + t.place + " " + t.district : ""].join(" ").toLowerCase();
+        if (!blob.includes(q)) return false;
       }
       return true;
     });
+    if (sort.value === "date") filtered.sort((a, b) => (a.date_identified || "").localeCompare(b.date_identified || ""));
+    if (sort.value === "arie") filtered.sort((a, b) => (a.arie_no || "").localeCompare(b.arie_no || ""));
     list.innerHTML = filtered.map(ins => inscCard(ins)).join("") || `<p class="muted">No matches.</p>`;
   }
   search.addEventListener("input", update);
+  dist.addEventListener("change", update);
   sort.addEventListener("change", update);
 }
 
