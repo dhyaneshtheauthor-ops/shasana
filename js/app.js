@@ -572,7 +572,8 @@ function showSuggestions(q) {
           applyFilters();
           box.style.display = "none";
           showKingCard(k.king_id);
-        }             
+        }      
+      });
   });
   const districts = new Set(INDEX.temples.map(t => t.district).filter(Boolean));
   districts.forEach(d => {
