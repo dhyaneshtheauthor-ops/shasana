@@ -585,3 +585,18 @@ details summary::-webkit-details-marker { display: none; }
 .king-map-col { position: sticky; top: 88px; }
 .king-layout-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 32px; }
 @media (max-width: 900px) { .king-layout-grid { grid-template-columns: 1fr; } .king-map-col { position: static; } }
+
+  .king-page { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; }
+@media (max-width: 800px) { .king-page { grid-template-columns: 1fr; } }
+.king-sidebar { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; text-align: center; }
+.king-sidebar img.portrait { width: 160px; height: 200px; object-fit: cover; border-radius: 80px 80px 8px 8px; border: 2px solid var(--gold); margin-bottom: 16px; }
+.king-sidebar h2 { margin: 8px 0 4px; font-size: 1.4rem; }
+.king-insc-col h3 { margin-top: 0; }
+.king-nav-cards { display: flex; gap: 16px; margin-top: 32px; }
+.king-nav-cards a { flex: 1; padding: 16px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: inherit; }
+@media (max-width: 800px) {
+  .king-mobile-header { display: flex; gap: 16px; align-items: flex-start; text-align: left; margin-bottom: 16px; }
+  .king-mobile-header img { width: 100px; height: 125px; object-fit: cover; border-radius: 50px 50px 8px 8px; border: 2px solid var(--gold); }
+  .king-sidebar { text-align: left; }
+  .king-sidebar > img.portrait { display: none; }
+}
