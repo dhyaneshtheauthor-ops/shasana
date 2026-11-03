@@ -500,17 +500,18 @@ function renderMap() {
     <div class="map-page">
       <div id="map"></div>
       <div class="map-overlays">
-        <input type="search" id="mapSearch" placeholder="Search temple, king, place…" class="map-search" autocomplete="off">
+        <div style="position:relative;flex:1;min-width:180px;max-width:320px">
+          <input type="search" id="mapSearch" placeholder="Search temple, king, place…" class="map-search" autocomplete="off">
+          <div id="searchSuggest" class="search-suggest" style="display:none;position:absolute;top:100%;left:0;z-index:600;min-width:280px;margin-top:4px"></div>
+        </div>
         <select id="mapDynasty"><option value="">All dynasties</option><option value="Pandya">Pandya</option><option value="Chola">Chola</option></select>
         <select id="mapKing"><option value="">All kings</option>${kings}</select>
         <select id="mapCentury"><option value="">All centuries</option>${centuries.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}</select>
         <select id="mapYear"><option value="">All ARIE years</option>${years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join("")}</select>
       </div>
-      <div id="searchSuggest" class="search-suggest" style="display:none;position:absolute;top:100%;left:0;z-index:600"></div>
       <div id="pinCard" class="pin-card" style="display:none"></div>
       <div class="timeline-bar" id="timelineBar">${timeline}</div>
     </div>
-  `;
   initFullMap();
   document.getElementById("mapSearch").addEventListener("input", onSearchInput);
   document.getElementById("mapDynasty").addEventListener("change", applyFilters);
