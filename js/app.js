@@ -396,16 +396,8 @@ function renderKing(id) {
     </div>
     <div class="king-layout-grid">
       <div>
-        <h3 class="section-title">Inscriptions</h3>
-        ${insc.length ? `<div class="insc-timeline">${insc.map(ins => `
-          <div class="insc-tl-card ${dynColor}">
-            <span class="are-badge">${escapeHtml(ins.arie_no || "")}</span>
-            <span class="tag tag-${dynColor}" style="margin-left:6px">${escapeHtml(ins.record_type || "stone")}</span>
-            <h4 style="margin:8px 0">${escapeHtml(ins.king || "Unnamed king")}</h4>
-            ${ins.location_within_temple ? `<p class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(ins.location_within_temple)}</p>` : ""}
-            <p class="line-clamp">${escapeHtml(ins.SII_notes || ins.remarks || "")}</p>
-            <a href="#/inscription/${encodeURIComponent(ins.arie_id)}">Read more →</a>
-          </div>`).join("")}</div>` : `<div class="card" style="padding:24px"><p class="muted">No inscriptions linked yet.</p></div>`}
+      <h3 class="section-title">Inscriptions</h3>
+      ${insc.length ? insc.map(ins => inscCard(ins)).join("") : `<div class="card" style="padding:24px"><p class="muted">No inscriptions linked yet.</p></div>`}
       </div>
       ${temples.length ? `<aside class="king-map-col">
         <h3 class="section-title">Where his records are found</h3>
