@@ -506,6 +506,7 @@ function renderMap() {
         <select id="mapCentury"><option value="">All centuries</option>${centuries.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}</select>
         <select id="mapYear"><option value="">All ARIE years</option>${years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join("")}</select>
       </div>
+      <div id="searchSuggest" class="search-suggest" style="display:none;position:absolute;top:100%;left:0;z-index:600"></div>
       <div id="pinCard" class="pin-card" style="display:none"></div>
       <div class="timeline-bar" id="timelineBar">${timeline}</div>
     </div>
@@ -664,9 +665,12 @@ function refreshMarkers() {
       const size = Math.min(56, Math.max(28, 20 + p.count * 2));
       const pct = p.count ? Math.round((p.pandya / p.count) * 100) : 0;
       const bg = `conic-gradient(#3F7D6E 0 ${pct}%, #A3301F ${pct}% 100%)`;
+      const pandya = group.reduce((s, p) => s + p.pandya, 0);
+      const pct = total ? Math.round((pandya / total) * 100) : 0;
+      const bg = `conic-gradient(#3F7D6E 0 ${pct}%, #A3301F ${pct}% 100%)`;
       const icon = L.divIcon({
         className: "",
-        html: `<div class="map-pin" style="width:${size}px;height:${size}px;background:${bg}">${p.count}</div>`,
+        html: `<div class="map-pin" style="width:${size}px;height:${size}px;background:${bg}">${total}</div>`,
         iconSize: [size, size], iconAnchor: [size/2, size/2]
       });
       const m = L.marker([p.t.lat, p.t.lng], { icon }).addTo(mapInstance);
@@ -735,6 +739,23 @@ function updateMapTiles() {
     attribution: '&copy; OpenStreetMap &copy; CARTO',
     maxZoom: 18
   }).addTo(mapInstance);
+}
+function showKingCard(kingId) {
+  const k = DATA.kings.find(x => x.king_id === kingId);
+  if (!k) return;
+  const insc = (INDEX.byKing[kingId] || []).slice(0, 5);
+  const panel = document.getElementById("pinCard");
+  if (!panel) return;
+  panel.style.display = "block";
+  panel.innerHTML = `
+    <button onclick="document.getElementById('pinCard').style.display='none'" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem">×</button>
+    <h3>${escapeHtml(k.king_name_standard)}</h3>
+    <p class="muted">${escapeHtml(k.century || "")}</p>
+    <p>${escapeHtml((k.short_bio || "").slice(0, 200))}</p>
+    <p><strong>${(INDEX.byKing[kingId] || []).length}</strong> inscriptions</p>
+    <div>${insc.map(i => `<div class="mini-insc">${escapeHtml(i.arie_no || "")} · ${escapeHtml(i.temple || "")}</div>`).join("")}</div>
+    <a href="#/king/${kingId}" class="read-more">View king page →</a>
+  `;
 }
 
 /* Boot */
