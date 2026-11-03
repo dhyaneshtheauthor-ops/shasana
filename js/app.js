@@ -485,10 +485,15 @@ function renderMap() {
   DATA.inscriptions.forEach(i => expandCenturies(i.century).forEach(c => centurySet.add(c)));
   const centuries = [...centurySet].sort();
   const years = [...new Set(DATA.inscriptions.map(i => String(i.arie_year || "").split("-")[0]).filter(Boolean))].sort();
-  const timeline = centuries.map(c => {
+  const centuries = [...centurySet].sort((a, b) => {
+    const na = parseInt(a) || 0;
+    const nb = parseInt(b) || 0;
+    return na - nb;
+  });
+  const timeline = `<button class="tl-dot" data-cen="" title="All">All</button>` + centuries.map(c => {
     const label = c.replace("th century", "00s").replace("st century", "00s");
     return `<button class="tl-dot" data-cen="${escapeHtml(c)}" title="${escapeHtml(c)}">${label}</button>`;
-}).join("");
+  }).join("");
   $app().innerHTML = `
     <div class="map-filters" style="position:relative">
       <input type="search" id="mapSearch" placeholder="Search temple, king, place, district, or ARIE number…" class="map-search" autocomplete="off">
@@ -512,8 +517,8 @@ function renderMap() {
   document.getElementById("mapYear").addEventListener("change", applyFilters);
   document.querySelectorAll(".tl-dot").forEach(btn => {
     btn.addEventListener("click", () => {
-      currentFilters.cen = btn.dataset.cen;
-      document.getElementById("mapCentury").value = btn.dataset.cen;
+      currentFilters.cen = btn.dataset.cen || "";
+      document.getElementById("mapCentury").value = btn.dataset.cen || "";
       document.querySelectorAll(".tl-dot").forEach(b => b.classList.toggle("active", b === btn));
       refreshMarkers();
     });
