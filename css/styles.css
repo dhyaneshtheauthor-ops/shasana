@@ -609,3 +609,10 @@ details summary::-webkit-details-marker { display: none; }
 .dyn-era-toggles button.off { opacity: .4; }
 .dyn-card.reveal { opacity: 0; transform: translateY(16px); }
 .dyn-card.reveal.in { opacity: 1; transform: none; transition: opacity .4s, transform .4s; }
+.dyn-lane { position: relative; }
+.dyn-card { position: absolute; left: 12px; right: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-decoration: none; color: inherit; overflow: hidden; }
+.dyn-card h3 { margin: 0 0 4px; font-size: .95rem; }
+.dyn-card .years { font-size: .8rem; color: var(--muted); }
+.dyn-card .bio { font-size: .8rem; margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.dyn-card.chola:hover { border-color: var(--kumkum); }
+.dyn-card.pandya:hover { border-color: var(--verdigris); }
