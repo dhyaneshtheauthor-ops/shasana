@@ -547,8 +547,15 @@ details summary::-webkit-details-marker { display: none; }
     background: #fffef8 !important;
     color: #2A2118 !important;
 }
-}
 @media (max-width: 700px) {
   .pin-card { top: auto; bottom: 90px; right: 12px; left: 12px; width: auto; max-height: 40vh; }
   .map-search { max-width: none; }
+}
+.search-suggest {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  max-height: 240px;
+  overflow-y: auto;
+  box-shadow: 0 6px 20px rgba(0,0,0,.4);
 }
