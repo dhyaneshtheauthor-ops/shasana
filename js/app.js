@@ -68,6 +68,16 @@ function escapeHtml(s) {
   if (s == null) return "";
   return String(s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
 }
+/* Cut a bio at a word boundary so it never stops mid-word, and mark the cut
+   with an ellipsis. CSS line-clamping still trims longer labels on narrow cards. */
+function clipText(text, max) {
+  const s = String(text == null ? "" : text).replace(/\s+/g, " ").trim();
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const space = cut.lastIndexOf(" ");
+  const body = (space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[,;:.\-–—]+$/, "");
+  return body + "…";
+}
 function expandCenturies(raw) {
   if (!raw) return [];
   const s = String(raw).toLowerCase();
@@ -317,6 +327,8 @@ function inscCard(ins) {
 
 /* KINGS */
 function renderKings() {
+  if (dynCleanup) { dynCleanup(); dynCleanup = null; }
+
   const allKings = DATA.kings.filter(k => k.accession_year_ce);
   if (!allKings.length) {
     $app().innerHTML = "<p>No kings with dates found.</p>";
@@ -333,6 +345,8 @@ function renderKings() {
   const PX_PER_YEAR = 1.6;  // default pace: 80px per 50 years
   const TOP_PAD = 24;       // space below the sticky lane header
   const END_PAD = 80;       // space after the last card
+  const PINS_PAD = 108;     // room kept clear for the pinned unidentified-king cards
+  const COMPACT_GAP = 16;   // mobile: fixed gap between rulers, no empty centuries
 
   const cholaKings = allKings.filter(k => k.dynasty === "Chola")
     .sort((a, b) => a.accession_year_ce - b.accession_year_ce);
@@ -348,7 +362,7 @@ function renderKings() {
         : (k.century || "");
       const count = (INDEX.byKing[k.king_id] || []).length;
       const bio = k.short_bio
-        ? `<div class="bio">${escapeHtml(k.short_bio.slice(0, 140))}</div>`
+        ? `<div class="bio">${escapeHtml(clipText(k.short_bio, 220))}</div>`
         : "";
       const branch = k.dynasty_branch ? `<span class="meta">${escapeHtml(k.dynasty_branch)}</span>` : "";
       const subCls = k.ruling_status === "subsidiary" ? " sub" : "";
@@ -361,6 +375,19 @@ function renderKings() {
     }).join("");
   }
 
+  /* The two rulers who could not be dated are pinned to the foot of the frame,
+     the way the lane headers stay pinned to its top. */
+  function pinCard(dyn) {
+    const id = dyn === "Chola" ? "chola_king_unidentified" : "pandya_king_unidentified";
+    const k = DATA.kings.find(x => x.king_id === id);
+    const name = k ? k.king_name_standard : `Unidentified ${dyn === "Chola" ? "Chola" : "Pandyan"} King`;
+    const count = (INDEX.byKing[id] || []).length;
+    return `<a href="#/king/${id}" class="dyn-pin ${dyn.toLowerCase()}">
+        <span class="pin-name">${escapeHtml(name)}</span>
+        <span class="pin-meta">${count} inscription${count === 1 ? "" : "s"} · reign unknown</span>
+      </a>`;
+  }
+
   $app().innerHTML = `
     <div class="dyn-page">
       <h2>Dynasties</h2>
@@ -369,17 +396,23 @@ function renderKings() {
         <button data-mode="chola">Chola</button>
         <button data-mode="pandya">Pandya</button>
       </div>
-      <div class="dyn-timeline-wrap" id="dynWrap">
-        <div class="dyn-timeline" id="dynTl">
-          <div class="dyn-lane chola">
-            <div class="dyn-lane-header chola"><img src="images/icons/chola_emblem.png" alt="" width="28" height="28"> Chola</div>
-            ${renderCards(cholaKings, "Chola")}
+      <div class="dyn-frame">
+        <div class="dyn-timeline-wrap" id="dynWrap">
+          <div class="dyn-timeline" id="dynTl">
+            <div class="dyn-lane chola">
+              <div class="dyn-lane-header chola"><img src="images/icons/chola_emblem.png" alt="" width="28" height="28"> Chola</div>
+              ${renderCards(cholaKings, "Chola")}
+            </div>
+            <div class="dyn-axis" id="dynAxis"></div>
+            <div class="dyn-lane pandya">
+              <div class="dyn-lane-header pandya"><img src="images/icons/pandya_emblem.png" alt="" width="28" height="28"> Pandya</div>
+              ${renderCards(pandyaKings, "Pandya")}
+            </div>
           </div>
-          <div class="dyn-axis" id="dynAxis"></div>
-          <div class="dyn-lane pandya">
-            <div class="dyn-lane-header pandya"><img src="images/icons/pandya_emblem.png" alt="" width="28" height="28"> Pandya</div>
-            ${renderCards(pandyaKings, "Pandya")}
-          </div>
+        </div>
+        <div class="dyn-pins">
+          ${pinCard("Chola")}
+          ${pinCard("Pandya")}
         </div>
       </div>
     </div>
@@ -396,6 +429,30 @@ function renderKings() {
   let firstPass = true;
   let frameId = 0;
   let seenWidth = -1;
+
+  /* Phones show one dynasty at a time, packed tight; the side-by-side ruler
+     needs the width that only a desktop viewport has. */
+  const narrowQuery = window.matchMedia("(max-width: 700px)");
+  const switchBtns = Array.from(document.querySelectorAll(".dyn-switch button"));
+  let mode = narrowQuery.matches ? "chola" : "both";
+
+  /* Size the scroller to the room actually left on screen, so the pinned
+     cards at its foot are never pushed under the bottom of the window (or
+     under the mobile bottom bar). */
+  function sizeWrap() {
+    const nav = document.querySelector(".bottom-nav");
+    const navH = nav && getComputedStyle(nav).display !== "none" ? nav.getBoundingClientRect().height : 0;
+    const top = wrap.getBoundingClientRect().top + window.scrollY;
+    const available = window.innerHeight - top - navH - 36;
+    wrap.style.height = Math.max(260, Math.round(available)) + "px";
+  }
+
+  function applyMode() {
+    laneEls[0].style.display = mode === "pandya" ? "none" : "";
+    laneEls[1].style.display = mode === "chola" ? "none" : "";
+    tl.classList.toggle("single", mode !== "both");
+    switchBtns.forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+  }
 
   function headerHeight() {
     const header = tl.querySelector(".dyn-lane-header");
@@ -513,7 +570,7 @@ function renderKings() {
       });
     });
 
-    const endY = Math.round(lowest + END_PAD);
+    const endY = Math.round(lowest + END_PAD + PINS_PAD);
     anchors = [...yearTops.entries()]
       .map(([year, y]) => ({ year, y: Math.round(y) }))
       .sort((a, b) => a.year - b.year);
@@ -547,13 +604,46 @@ function renderKings() {
     hiddenLanes.forEach(lane => { lane.style.display = "none"; });
   }
 
+  /* Phones: one lane, chronological, packed with a fixed gap so an empty
+     century never leaves a hole in the list. */
+  function layoutCompact() {
+    if (!tl.isConnected) return;
+    const lane = laneEls.find(l => l.style.display !== "none") || laneEls[0];
+    if (!lane) return;
+    const cards = Array.from(lane.querySelectorAll(".dyn-card"));
+    const heights = cards.map(card => Math.max(CARD_MIN_H, card.offsetHeight));
+    let y = headerHeight() + COMPACT_GAP;
+    cards.forEach((card, i) => {
+      card.style.top = Math.round(y) + "px";
+      y += heights[i] + COMPACT_GAP;
+    });
+    const totalHeight = Math.max(Math.round(y + PINS_PAD), wrap.clientHeight || 0);
+    tl.style.height = totalHeight + "px";
+    axis.style.height = totalHeight + "px";
+    axis.innerHTML = "";
+    anchors = [];
+    seenWidth = tl.clientWidth;
+  }
+
+  /* One entry point: pick the layout that suits the current width and keep the
+     tab state honest when crossing the breakpoint. */
+  function layout() {
+    const narrow = narrowQuery.matches;
+    mode = narrow ? (mode === "both" ? "chola" : mode) : "both";
+    applyMode();
+    sizeWrap();
+    if (narrow) layoutCompact();
+    else layoutTimeline();
+  }
+
   // Re-run the layout on resize or after the web fonts load, keeping the
   // century the reader was looking at in view.
   function relayout() {
     if (!tl.isConnected) return;
-    const yearAtTop = yToYear(wrap.scrollTop + headerHeight() + 12);
-    layoutTimeline();
-    if (!tl.isConnected) return;
+    const keepScroll = !narrowQuery.matches && anchors.length;
+    const yearAtTop = keepScroll ? yToYear(wrap.scrollTop + headerHeight() + 12) : 0;
+    layout();
+    if (!tl.isConnected || !keepScroll) return;
     const previousBehavior = wrap.style.scrollBehavior;
     wrap.style.scrollBehavior = "auto";
     wrap.scrollTop = Math.max(0, yearToY(yearAtTop) - headerHeight() - 12);
@@ -565,7 +655,7 @@ function renderKings() {
     frameId = requestAnimationFrame(() => { frameId = 0; relayout(); });
   }
 
-  layoutTimeline();
+  layout();
 
   // Fade cards in as they enter the scroll area.
   let revealObserver = null;
@@ -583,15 +673,12 @@ function renderKings() {
   }
 
   // Dynasty switch (small screens)
-  document.querySelectorAll(".dyn-switch button").forEach(btn => {
+  switchBtns.forEach(btn => {
     btn.addEventListener("click", () => {
-      document.querySelectorAll(".dyn-switch button").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      const mode = btn.dataset.mode;
-      laneEls[0].style.display = (mode === "pandya") ? "none" : "";
-      laneEls[1].style.display = (mode === "chola") ? "none" : "";
-      tl.classList.toggle("single", mode !== "both");
-      queueRelayout();
+      mode = btn.dataset.mode;
+      applyMode();
+      layout();
+      wrap.scrollTop = 0;
     });
   });
 
@@ -610,7 +697,11 @@ function renderKings() {
     document.fonts.ready.then(() => { if (tl.isConnected) queueRelayout(); });
   }
 
+  const onResize = () => queueRelayout();
+  window.addEventListener("resize", onResize);
+
   dynCleanup = () => {
+    window.removeEventListener("resize", onResize);
     if (resizeObserver) resizeObserver.disconnect();
     if (revealObserver) revealObserver.disconnect();
     if (frameId) cancelAnimationFrame(frameId);
