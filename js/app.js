@@ -315,117 +315,187 @@ function inscCard(ins) {
 }
 
 /* KINGS */
-/* Dynasty timeline */
-.dyn-page { max-width: 1100px; margin: 0 auto; padding-bottom: 20px; }
-.dyn-switch { display: none; gap: 8px; margin-bottom: 16px; }
-@media (max-width: 700px) { .dyn-switch { display: flex; } }
-.dyn-switch button { flex: 1; padding: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 8px; cursor: pointer; }
-.dyn-switch button.active { background: var(--gold); color: #1C1A18; }
+function renderKings() {
+  const allKings = DATA.kings.filter(k => k.accession_year_ce);
+  if (!allKings.length) {
+    $app().innerHTML = "<p>No kings with dates found.</p>";
+    return;
+  }
+  const minY = Math.min(...allKings.map(k => k.accession_year_ce));
+  const maxY = Math.max(...allKings.map(k => k.end_year_ce || k.accession_year_ce));
 
-.dyn-timeline-wrap {
-  height: calc(100vh - 160px);
-  overflow-y: auto;
-  position: relative;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg);
-  scroll-behavior: smooth;
+  // Segment timeline into 50-year buckets for local expansion
+  const SEGMENT = 50;
+  const segments = [];
+  for (let y = Math.floor(minY / SEGMENT) * SEGMENT; y <= maxY + SEGMENT; y += SEGMENT) {
+    segments.push({ start: y, end: y + SEGMENT, kings: [] });
+  }
+
+  function assignToSegments(kings) {
+    kings.forEach(k => {
+      const start = k.accession_year_ce;
+      const seg = segments.find(s => start >= s.start && start < s.end);
+      if (seg) seg.kings.push(k);
+    });
+  }
+
+  const cholaKings = allKings.filter(k => k.dynasty === "Chola").sort((a, b) => a.accession_year_ce - b.accession_year_ce);
+  const pandyaKings = allKings.filter(k => k.dynasty === "Pandya").sort((a, b) => a.accession_year_ce - b.accession_year_ce);
+
+  // Reset segments and assign
+  segments.forEach(s => s.kings = []);
+  assignToSegments(cholaKings);
+  assignToSegments(pandyaKings);
+
+  // Compute cumulative Y positions with expansion where dense
+  const CARD_MIN_H = 118;
+  const GAP = 12;
+  const HEADER_OFFSET = 60;
+  let cumulative = HEADER_OFFSET;
+  const yearToY = new Map();
+
+  segments.forEach(seg => {
+    const count = seg.kings.length;
+    // Base height for 50 years, expand if many kings
+    const baseH = 80;
+    const needed = Math.max(baseH, count * (CARD_MIN_H + GAP) * 0.7); // allow some packing
+    seg.top = cumulative;
+    seg.height = needed;
+    cumulative += needed;
+    // Map years in segment
+    for (let yy = seg.start; yy < seg.end; yy += 10) {
+      const frac = (yy - seg.start) / SEGMENT;
+      yearToY.set(yy, seg.top + frac * seg.height);
+    }
+    yearToY.set(seg.end, seg.top + seg.height);
+  });
+
+  const totalHeight = cumulative + 40;
+
+  function getY(year) {
+    // Find closest mapped or interpolate
+    const rounded = Math.round(year / 10) * 10;
+    if (yearToY.has(rounded)) return yearToY.get(rounded);
+    // fallback linear
+    const frac = (year - minY) / Math.max(1, maxY - minY);
+    return HEADER_OFFSET + frac * (totalHeight - HEADER_OFFSET - 40);
+  }
+
+  function layoutKings(kings) {
+    const items = [];
+    // Group by approximate position to avoid exact overlaps
+    const placed = [];
+    kings.forEach(k => {
+      let y = getY(k.accession_year_ce);
+      // Nudge down if too close to previous in same lane
+      const last = placed[placed.length - 1];
+      if (last && y < last.bottom + GAP) {
+        y = last.bottom + GAP;
+      }
+      const cardH = CARD_MIN_H;
+      items.push({ king: k, top: y, height: cardH });
+      placed.push({ top: y, bottom: y + cardH });
+    });
+    return items;
+  }
+
+  const cholaItems = layoutKings(cholaKings);
+  const pandyaItems = layoutKings(pandyaKings);
+
+  function renderCards(items, dyn) {
+    return items.map(it => {
+      const k = it.king;
+      const years = (k.accession_year_ce && k.end_year_ce)
+        ? `${k.accession_year_ce}–${k.end_year_ce} CE`
+        : (k.century || "");
+      const count = (INDEX.byKing[k.king_id] || []).length;
+      const bio = k.short_bio
+        ? `<div class="bio">${escapeHtml(k.short_bio.slice(0, 140))}</div>`
+        : "";
+      const branch = k.dynasty_branch ? `<span class="meta">${escapeHtml(k.dynasty_branch)}</span>` : "";
+      const subCls = k.ruling_status === "subsidiary" ? " sub" : "";
+      return `<a href="#/king/${k.king_id}" class="dyn-card ${dyn.toLowerCase()}${subCls} reveal" style="top:${it.top}px;min-height:${it.height}px" data-year="${k.accession_year_ce}">
+        <h3>${escapeHtml(k.king_name_standard)}</h3>
+        <div class="years">${escapeHtml(years)}${count ? ` · ${count} insc` : ""}</div>
+        ${branch}
+        ${bio}
+      </a>`;
+    }).join("");
+  }
+
+  // Year marks every 50 years, positioned by getY
+  const yearMarks = [];
+  for (let y = Math.ceil(minY / 50) * 50; y <= maxY; y += 50) {
+    const pos = getY(y);
+    yearMarks.push(`<div class="dyn-year-label" style="top:${pos}px">${y}</div>`);
+  }
+
+  $app().innerHTML = `
+    <div class="dyn-page">
+      <h2>Dynasties</h2>
+      <div class="dyn-switch">
+        <button class="active" data-mode="both">Both</button>
+        <button data-mode="chola">Chola</button>
+        <button data-mode="pandya">Pandya</button>
+      </div>
+      <div class="dyn-timeline-wrap" id="dynWrap">
+        <div class="dyn-timeline" id="dynTl" style="height:${totalHeight}px">
+          <div class="dyn-lane">
+            <div class="dyn-lane-header chola"><img src="images/icons/chola_emblem.png" alt="" width="28" height="28"> Chola</div>
+            ${renderCards(cholaItems, "Chola")}
+          </div>
+          <div class="dyn-axis" style="height:${totalHeight}px">
+            <div class="dyn-axis-line"></div>
+            ${yearMarks.join("")}
+          </div>
+          <div class="dyn-lane">
+            <div class="dyn-lane-header pandya"><img src="images/icons/pandya_emblem.png" alt="" width="28" height="28"> Pandya</div>
+            ${renderCards(pandyaItems, "Pandya")}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Switch buttons
+  document.querySelectorAll(".dyn-switch button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".dyn-switch button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const mode = btn.dataset.mode;
+      const lanes = document.querySelectorAll(".dyn-lane");
+      lanes[0].style.display = (mode === "pandya") ? "none" : "";
+      lanes[1].style.display = (mode === "chola") ? "none" : "";
+      document.getElementById("dynTl").classList.toggle("single", mode !== "both");
+    });
+  });
+
+  // Reveal on scroll, and reverse when leaving upwards
+  const wrap = document.getElementById("dynWrap");
+  const cards = document.querySelectorAll(".dyn-card.reveal");
+  if ("IntersectionObserver" in window && wrap) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add("in");
+        } else if (e.boundingClientRect.top < 0) {
+          // scrolled out upwards — reverse animation
+          e.target.classList.remove("in");
+        }
+      });
+    }, { root: wrap, threshold: 0.15, rootMargin: "0px 0px -10% 0px" });
+    cards.forEach(c => io.observe(c));
+  } else {
+    cards.forEach(c => c.classList.add("in"));
+  }
+
+  // Open scrolled to ~800 CE
+  setTimeout(() => {
+    const targetY = getY(800);
+    const viewH = wrap ? wrap.clientHeight : 600;
+    wrap.scrollTop = Math.max(0, targetY - viewH * 0.35);
+  }, 50);
 }
-.dyn-timeline {
-  display: grid;
-  grid-template-columns: 1fr 80px 1fr;
-  position: relative;
-}
-@media (max-width: 700px) {
-  .dyn-timeline.single { grid-template-columns: 1fr; }
-  .dyn-timeline.single .dyn-axis { display: none; }
-}
-.dyn-lane { position: relative; }
-.dyn-lane-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 12px;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  font-weight: 600;
-}
-.dyn-lane-header.chola { border-top: 3px solid var(--kumkum); }
-.dyn-lane-header.pandya { border-top: 3px solid var(--verdigris); }
-.dyn-axis { position: relative; }
-.dyn-axis-line {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: linear-gradient(to bottom, transparent, var(--gold) 10%, var(--gold) 90%, transparent);
-  transform: translateX(-50%);
-}
-.dyn-year-label {
-  position: absolute;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: .7rem;
-  color: var(--gold);
-  background: var(--bg);
-  padding: 4px 6px;
-  border-radius: 50%;
-  border: 2px solid var(--gold);
-  min-width: 46px;
-  height: 46px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 15;
-  font-weight: 700;
-  box-shadow: 0 0 0 4px var(--bg);
-}
-.dyn-card {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 14px;
-  text-decoration: none;
-  color: inherit;
-  display: block;
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity .4s ease, transform .4s ease, border-color .2s, box-shadow .2s;
-  box-shadow: 0 2px 6px rgba(0,0,0,.12);
-  min-height: 100px;
-}
-.dyn-card.in {
-  opacity: 1;
-  transform: translateY(0);
-}
-.dyn-card:hover {
-  text-decoration: none;
-  border-color: var(--gold);
-  box-shadow: 0 6px 20px rgba(0,0,0,.22);
-  transform: translateY(-3px);
-}
-.dyn-card.chola:hover { border-color: var(--kumkum); }
-.dyn-card.pandya:hover { border-color: var(--verdigris); }
-.dyn-card h3 { margin: 0 0 4px; font-size: .98rem; line-height: 1.3; }
-.dyn-card .years { font-size: .8rem; color: var(--muted); }
-.dyn-card .bio {
-  font-size: .8rem;
-  margin-top: 6px;
-  line-height: 1.35;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.dyn-card .meta { font-size: .72rem; color: var(--gold); margin-top: 6px; font-weight: 600; }
-.dyn-card.sub { border-style: dashed; opacity: 0.92; }
 
 function kingCard(k) {
   const years = (k.accession_year_ce && k.end_year_ce) ? `${k.accession_year_ce}–${k.end_year_ce}` : (k.century||"");
