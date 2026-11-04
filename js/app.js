@@ -316,95 +316,34 @@ function inscCard(ins) {
 
 /* KINGS */
 function renderKings() {
+  if (dynCleanup) { dynCleanup(); dynCleanup = null; }
+
   const allKings = DATA.kings.filter(k => k.accession_year_ce);
   if (!allKings.length) {
     $app().innerHTML = "<p>No kings with dates found.</p>";
     return;
   }
+
+  /* The timeline is measured in pixels, not years. Every stretch of time
+     starts at the default pace (PX_PER_YEAR) and only grows when the cards
+     sitting in that stretch need the extra room, so sparse centuries stay
+     compact while crowded ones expand. */
+  const CARD_MIN_H = 112;   // keep in sync with .dyn-card { min-height }
+  const CARD_GAP = 18;      // minimum space between cards sharing a year
+  const YEAR_GAP = 26;      // minimum space between two different years
+  const PX_PER_YEAR = 1.6;  // default pace: 80px per 50 years
+  const TOP_PAD = 24;       // space below the sticky lane header
+  const END_PAD = 80;       // space after the last card
+
+  const cholaKings = allKings.filter(k => k.dynasty === "Chola")
+    .sort((a, b) => a.accession_year_ce - b.accession_year_ce);
+  const pandyaKings = allKings.filter(k => k.dynasty === "Pandya")
+    .sort((a, b) => a.accession_year_ce - b.accession_year_ce);
   const minY = Math.min(...allKings.map(k => k.accession_year_ce));
   const maxY = Math.max(...allKings.map(k => k.end_year_ce || k.accession_year_ce));
 
-  // Segment timeline into 50-year buckets for local expansion
-  const SEGMENT = 50;
-  const segments = [];
-  for (let y = Math.floor(minY / SEGMENT) * SEGMENT; y <= maxY + SEGMENT; y += SEGMENT) {
-    segments.push({ start: y, end: y + SEGMENT, kings: [] });
-  }
-
-  function assignToSegments(kings) {
-    kings.forEach(k => {
-      const start = k.accession_year_ce;
-      const seg = segments.find(s => start >= s.start && start < s.end);
-      if (seg) seg.kings.push(k);
-    });
-  }
-
-  const cholaKings = allKings.filter(k => k.dynasty === "Chola").sort((a, b) => a.accession_year_ce - b.accession_year_ce);
-  const pandyaKings = allKings.filter(k => k.dynasty === "Pandya").sort((a, b) => a.accession_year_ce - b.accession_year_ce);
-
-  // Reset segments and assign
-  segments.forEach(s => s.kings = []);
-  assignToSegments(cholaKings);
-  assignToSegments(pandyaKings);
-
-  // Compute cumulative Y positions with expansion where dense
-  const CARD_MIN_H = 118;
-  const GAP = 24;
-  const HEADER_OFFSET = 60;
-  let cumulative = HEADER_OFFSET;
-  const yearToY = new Map();
-
-  segments.forEach(seg => {
-    const count = seg.kings.length;
-    // Base height for 50 years, expand if many kings
-    const baseH = 120;
-    const needed = Math.max(baseH, count * (CARD_MIN_H + GAP) * 0.7); // allow some packing
-    seg.top = cumulative;
-    seg.height = needed;
-    cumulative += needed;
-    // Map years in segment
-    for (let yy = seg.start; yy < seg.end; yy += 10) {
-      const frac = (yy - seg.start) / SEGMENT;
-      yearToY.set(yy, seg.top + frac * seg.height);
-    }
-    yearToY.set(seg.end, seg.top + seg.height);
-  });
-
-  const totalHeight = cumulative + 40;
-
-  function getY(year) {
-    // Find closest mapped or interpolate
-    const rounded = Math.round(year / 10) * 10;
-    if (yearToY.has(rounded)) return yearToY.get(rounded);
-    // fallback linear
-    const frac = (year - minY) / Math.max(1, maxY - minY);
-    return HEADER_OFFSET + frac * (totalHeight - HEADER_OFFSET - 40);
-  }
-
-  function layoutKings(kings) {
-    const items = [];
-    // Group by approximate position to avoid exact overlaps
-    const placed = [];
-    kings.forEach(k => {
-      let y = getY(k.accession_year_ce);
-      // Nudge down if too close to previous in same lane
-      const last = placed[placed.length - 1];
-      if (last && y < last.bottom + GAP) {
-        y = last.bottom + GAP;
-      }
-      const cardH = CARD_MIN_H;
-      items.push({ king: k, top: y, height: cardH });
-      placed.push({ top: y, bottom: y + cardH });
-    });
-    return items;
-  }
-
-  const cholaItems = layoutKings(cholaKings);
-  const pandyaItems = layoutKings(pandyaKings);
-
-  function renderCards(items, dyn) {
-    return items.map(it => {
-      const k = it.king;
+  function renderCards(kings, dyn) {
+    return kings.map(k => {
       const years = (k.accession_year_ce && k.end_year_ce)
         ? `${k.accession_year_ce}–${k.end_year_ce} CE`
         : (k.century || "");
@@ -414,20 +353,13 @@ function renderKings() {
         : "";
       const branch = k.dynasty_branch ? `<span class="meta">${escapeHtml(k.dynasty_branch)}</span>` : "";
       const subCls = k.ruling_status === "subsidiary" ? " sub" : "";
-      return `<a href="#/king/${k.king_id}" class="dyn-card ${dyn.toLowerCase()}${subCls} reveal" style="top:${it.top}px;min-height:${it.height}px" data-year="${k.accession_year_ce}">
+      return `<a href="#/king/${k.king_id}" class="dyn-card ${dyn.toLowerCase()}${subCls} reveal" data-year="${k.accession_year_ce}">
         <h3>${escapeHtml(k.king_name_standard)}</h3>
         <div class="years">${escapeHtml(years)}${count ? ` · ${count} insc` : ""}</div>
         ${branch}
         ${bio}
       </a>`;
     }).join("");
-  }
-
-  // Year marks every 50 years, positioned by getY
-  const yearMarks = [];
-  for (let y = Math.ceil(minY / 50) * 50; y <= maxY; y += 50) {
-    const pos = getY(y);
-    yearMarks.push(`<div class="dyn-year-label" style="top:${pos}px">${y}</div>`);
   }
 
   $app().innerHTML = `
@@ -439,62 +371,251 @@ function renderKings() {
         <button data-mode="pandya">Pandya</button>
       </div>
       <div class="dyn-timeline-wrap" id="dynWrap">
-        <div class="dyn-timeline" id="dynTl" style="height:${totalHeight}px">
-          <div class="dyn-lane">
+        <div class="dyn-timeline" id="dynTl">
+          <div class="dyn-lane chola">
             <div class="dyn-lane-header chola"><img src="images/icons/chola_emblem.png" alt="" width="28" height="28"> Chola</div>
-            ${renderCards(cholaItems, "Chola")}
+            ${renderCards(cholaKings, "Chola")}
           </div>
-          <div class="dyn-axis" style="height:${totalHeight}px">
-            <div class="dyn-axis-line"></div>
-            ${yearMarks.join("")}
-          </div>
-          <div class="dyn-lane">
+          <div class="dyn-axis" id="dynAxis"></div>
+          <div class="dyn-lane pandya">
             <div class="dyn-lane-header pandya"><img src="images/icons/pandya_emblem.png" alt="" width="28" height="28"> Pandya</div>
-            ${renderCards(pandyaItems, "Pandya")}
+            ${renderCards(pandyaKings, "Pandya")}
           </div>
         </div>
       </div>
     </div>
   `;
 
-  // Switch buttons
+  const wrap = document.getElementById("dynWrap");
+  const tl = document.getElementById("dynTl");
+  const axis = document.getElementById("dynAxis");
+  if (!wrap || !tl || !axis) return;
+  const laneEls = Array.from(tl.querySelectorAll(".dyn-lane"));
+  const cardEls = Array.from(tl.querySelectorAll(".dyn-card"));
+
+  let anchors = [];      // [{ year, y }] — the piecewise-linear year ruler
+  let firstPass = true;
+  let frameId = 0;
+  let seenWidth = -1;
+
+  function headerHeight() {
+    const header = tl.querySelector(".dyn-lane-header");
+    return header ? header.offsetHeight : 56;
+  }
+
+  function yearToY(year) {
+    if (!anchors.length) return TOP_PAD;
+    if (year <= anchors[0].year) return anchors[0].y - (anchors[0].year - year) * PX_PER_YEAR;
+    for (let i = 1; i < anchors.length; i++) {
+      const a = anchors[i - 1], b = anchors[i];
+      if (year <= b.year) {
+        const t = (year - a.year) / Math.max(1, b.year - a.year);
+        return a.y + t * (b.y - a.y);
+      }
+    }
+    const last = anchors[anchors.length - 1];
+    return last.y + (year - last.year) * PX_PER_YEAR;
+  }
+
+  function yToYear(y) {
+    if (!anchors.length) return minY;
+    if (y <= anchors[0].y) return anchors[0].year - (anchors[0].y - y) / PX_PER_YEAR;
+    for (let i = 1; i < anchors.length; i++) {
+      const a = anchors[i - 1], b = anchors[i];
+      if (y <= b.y) {
+        const t = (y - a.y) / Math.max(1, b.y - a.y);
+        return a.year + t * (b.year - a.year);
+      }
+    }
+    const last = anchors[anchors.length - 1];
+    return last.year + (y - last.y) / PX_PER_YEAR;
+  }
+
+  function layoutTimeline() {
+    if (!tl.isConnected) return;
+
+    // Lanes hidden by the mobile dynasty switch still need their real width
+    // while heights are measured; restore them right after.
+    const hiddenLanes = laneEls.filter(lane => lane.style.display === "none");
+    hiddenLanes.forEach(lane => { lane.style.display = ""; });
+
+    const top = headerHeight() + TOP_PAD;
+
+    // Measure every card and group it per dynasty by accession year.
+    const laneGroups = laneEls.map(lane => {
+      const byYear = new Map();
+      lane.querySelectorAll(".dyn-card").forEach(card => {
+        const year = Number(card.dataset.year);
+        if (!Number.isFinite(year)) return;
+        if (!byYear.has(year)) byYear.set(year, []);
+        byYear.get(year).push({ el: card, h: Math.max(CARD_MIN_H, card.offsetHeight) });
+      });
+      return [...byYear.entries()]
+        .map(([year, cards]) => ({ year, cards }))
+        .sort((a, b) => a.year - b.year);
+    });
+
+    const allYears = [...new Set(laneGroups.flat().map(group => group.year))].sort((a, b) => a - b);
+
+    /* One shared year ruler for both lanes. It starts at the default pace and
+       is only stretched where a dynasty's own cards need the extra room; the
+       constraints are solved together so both lanes stay on the same years. */
+    let scale = new Map(allYears.map(year => [year, top + (year - allYears[0]) * PX_PER_YEAR]));
+
+    function stackLane(groups, ruler, required) {
+      let previousBottom = -Infinity;
+      groups.forEach(group => {
+        const start = Math.max(ruler.get(group.year), previousBottom + YEAR_GAP);
+        if (required) required.set(group.year, Math.max(required.get(group.year) ?? -Infinity, start));
+        let bottom = start;
+        group.cards.forEach(card => { bottom += card.h + CARD_GAP; });
+        previousBottom = bottom - CARD_GAP;
+      });
+    }
+
+    for (let pass = 0; pass < 24; pass++) {
+      const required = new Map();
+      laneGroups.forEach(groups => stackLane(groups, scale, required));
+
+      const next = new Map();
+      let previousYear = allYears[0];
+      let previousY = top;
+      let changed = Math.abs(scale.get(previousYear) - top) > 0.25;
+      next.set(previousYear, top);
+      for (let i = 1; i < allYears.length; i++) {
+        const year = allYears[i];
+        const paced = previousY + (year - previousYear) * PX_PER_YEAR;
+        const y = Math.max(paced, required.get(year));
+        if (Math.abs(y - scale.get(year)) > 0.25) changed = true;
+        next.set(year, y);
+        previousY = y;
+        previousYear = year;
+      }
+      scale = next;
+      if (!changed) break;
+    }
+
+    // Place the cards on the ruler: a shared year sits on one line, and cards
+    // of the same dynasty and year stack downwards with a fixed gap.
+    const positions = [];
+    const yearTops = new Map();
+    let lowest = top;
+    laneGroups.forEach(groups => {
+      let previousBottom = -Infinity;
+      groups.forEach(group => {
+        let y = Math.max(scale.get(group.year), previousBottom + YEAR_GAP);
+        yearTops.set(group.year, Math.max(yearTops.get(group.year) ?? -Infinity, y));
+        group.cards.forEach(card => {
+          positions.push([card.el, y]);
+          y += card.h + CARD_GAP;
+        });
+        previousBottom = y - CARD_GAP;
+        lowest = Math.max(lowest, previousBottom);
+      });
+    });
+
+    const endY = Math.round(lowest + END_PAD);
+    anchors = [...yearTops.entries()]
+      .map(([year, y]) => ({ year, y: Math.round(y) }))
+      .sort((a, b) => a.year - b.year);
+    anchors.push({ year: Math.max(maxY + 20, anchors[anchors.length - 1].year + 1), y: endY });
+
+    positions.forEach(([el, y]) => { el.style.top = Math.round(y) + "px"; });
+
+    const totalHeight = Math.max(endY, wrap.clientHeight || 0);
+    tl.style.height = totalHeight + "px";
+    axis.style.height = totalHeight + "px";
+
+    // Year marks every 50 years, placed with the same ruler as the cards so
+    // the axis stretches exactly where the cards need the room.
+    const marks = [];
+    for (let year = Math.ceil(minY / 50) * 50; year <= maxY; year += 50) {
+      marks.push(`<div class="dyn-year-label" style="top:${Math.round(yearToY(year))}px">${year}</div>`);
+    }
+    axis.innerHTML = `<div class="dyn-axis-line"></div>${marks.join("")}`;
+
+    seenWidth = tl.clientWidth;
+
+    // Open the page around 850 CE, the start of the Chola record.
+    if (firstPass) {
+      firstPass = false;
+      const previousBehavior = wrap.style.scrollBehavior;
+      wrap.style.scrollBehavior = "auto";
+      wrap.scrollTop = Math.max(0, yearToY(850) - headerHeight() - 16);
+      wrap.style.scrollBehavior = previousBehavior;
+    }
+
+    hiddenLanes.forEach(lane => { lane.style.display = "none"; });
+  }
+
+  // Re-run the layout on resize or after the web fonts load, keeping the
+  // century the reader was looking at in view.
+  function relayout() {
+    if (!tl.isConnected) return;
+    const yearAtTop = yToYear(wrap.scrollTop + headerHeight() + 12);
+    layoutTimeline();
+    if (!tl.isConnected) return;
+    const previousBehavior = wrap.style.scrollBehavior;
+    wrap.style.scrollBehavior = "auto";
+    wrap.scrollTop = Math.max(0, yearToY(yearAtTop) - headerHeight() - 12);
+    wrap.style.scrollBehavior = previousBehavior;
+  }
+
+  function queueRelayout() {
+    if (frameId) return;
+    frameId = requestAnimationFrame(() => { frameId = 0; relayout(); });
+  }
+
+  layoutTimeline();
+
+  // Fade cards in as they enter the scroll area.
+  let revealObserver = null;
+  if ("IntersectionObserver" in window) {
+    revealObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("in");
+        revealObserver.unobserve(entry.target);
+      });
+    }, { root: wrap, threshold: 0.1, rootMargin: "0px 0px -4% 0px" });
+    cardEls.forEach(card => revealObserver.observe(card));
+  } else {
+    cardEls.forEach(card => card.classList.add("in"));
+  }
+
+  // Dynasty switch (small screens)
   document.querySelectorAll(".dyn-switch button").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".dyn-switch button").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       const mode = btn.dataset.mode;
-      const lanes = document.querySelectorAll(".dyn-lane");
-      lanes[0].style.display = (mode === "pandya") ? "none" : "";
-      lanes[1].style.display = (mode === "chola") ? "none" : "";
-      document.getElementById("dynTl").classList.toggle("single", mode !== "both");
+      laneEls[0].style.display = (mode === "pandya") ? "none" : "";
+      laneEls[1].style.display = (mode === "chola") ? "none" : "";
+      tl.classList.toggle("single", mode !== "both");
+      queueRelayout();
     });
   });
 
-  // Reveal on scroll, and reverse when leaving upwards
-  const wrap = document.getElementById("dynWrap");
-  const cards = document.querySelectorAll(".dyn-card.reveal");
-  if ("IntersectionObserver" in window && wrap) {
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          e.target.classList.add("in");
-        } else if (e.boundingClientRect.top < 0) {
-          // scrolled out upwards — reverse animation
-          e.target.classList.remove("in");
-        }
-      });
-    }, { root: wrap, threshold: 0.15, rootMargin: "0px 0px -10% 0px" });
-    cards.forEach(c => io.observe(c));
-  } else {
-    cards.forEach(c => c.classList.add("in"));
+  let resizeObserver = null;
+  if ("ResizeObserver" in window) {
+    resizeObserver = new ResizeObserver(entries => {
+      const width = entries[0].contentRect.width;
+      if (Math.abs(width - seenWidth) < 2) return;
+      seenWidth = width;
+      queueRelayout();
+    });
+    resizeObserver.observe(tl);
   }
 
-  // Open scrolled to ~850 CE
-  setTimeout(() => {
-    const targetY = getY(850);
-    const viewH = wrap ? wrap.clientHeight : 600;
-    wrap.scrollTop = Math.max(0, targetY - viewH * 0.35);
-  }, 50);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => { if (tl.isConnected) queueRelayout(); });
+  }
+
+  dynCleanup = () => {
+    if (resizeObserver) resizeObserver.disconnect();
+    if (revealObserver) revealObserver.disconnect();
+    if (frameId) cancelAnimationFrame(frameId);
+  };
 }
 
 function kingCard(k) {
