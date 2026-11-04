@@ -349,7 +349,7 @@ function renderKings() {
 
   // Compute cumulative Y positions with expansion where dense
   const CARD_MIN_H = 118;
-  const GAP = 12;
+  const GAP = 24;
   const HEADER_OFFSET = 60;
   let cumulative = HEADER_OFFSET;
   const yearToY = new Map();
@@ -357,7 +357,7 @@ function renderKings() {
   segments.forEach(seg => {
     const count = seg.kings.length;
     // Base height for 50 years, expand if many kings
-    const baseH = 80;
+    const baseH = 120;
     const needed = Math.max(baseH, count * (CARD_MIN_H + GAP) * 0.7); // allow some packing
     seg.top = cumulative;
     seg.height = needed;
@@ -489,9 +489,9 @@ function renderKings() {
     cards.forEach(c => c.classList.add("in"));
   }
 
-  // Open scrolled to ~800 CE
+  // Open scrolled to ~850 CE
   setTimeout(() => {
-    const targetY = getY(800);
+    const targetY = getY(850);
     const viewH = wrap ? wrap.clientHeight : 600;
     wrap.scrollTop = Math.max(0, targetY - viewH * 0.35);
   }, 50);
