@@ -588,16 +588,30 @@ details summary::-webkit-details-marker { display: none; }
 
 .dyn-timeline-wrap {
   height: calc(100vh - 160px);
+  min-height: 380px;
   overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--bg);
   scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201,154,59,.55) transparent;
 }
+.dyn-timeline-wrap::-webkit-scrollbar { width: 12px; }
+.dyn-timeline-wrap::-webkit-scrollbar-track { background: transparent; }
+.dyn-timeline-wrap::-webkit-scrollbar-thumb {
+  background: rgba(201,154,59,.45);
+  border: 3px solid var(--bg);
+  border-radius: 8px;
+}
+.dyn-timeline-wrap::-webkit-scrollbar-thumb:hover { background: rgba(201,154,59,.75); }
+
 .dyn-timeline {
   display: grid;
-  grid-template-columns: 1fr 80px 1fr;
+  grid-template-columns: 1fr 88px 1fr;
   position: relative;
 }
 @media (max-width: 700px) {
@@ -609,6 +623,7 @@ details summary::-webkit-details-marker { display: none; }
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 56px;
   padding: 14px 12px;
   background: var(--card);
   border-bottom: 1px solid var(--border);
@@ -616,7 +631,9 @@ details summary::-webkit-details-marker { display: none; }
   top: 0;
   z-index: 40;
   font-weight: 600;
+  box-shadow: 0 12px 16px -14px rgba(0,0,0,.85);
 }
+[data-theme="light"] .dyn-lane-header { box-shadow: 0 12px 16px -14px rgba(42,33,24,.4); }
 .dyn-lane-header.chola { border-top: 3px solid var(--kumkum); }
 .dyn-lane-header.pandya { border-top: 3px solid var(--verdigris); }
 .dyn-axis { position: relative; }
@@ -650,8 +667,8 @@ details summary::-webkit-details-marker { display: none; }
 }
 .dyn-card {
   position: absolute;
-  left: 10px;
-  right: 10px;
+  left: 12px;
+  right: 12px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -659,11 +676,11 @@ details summary::-webkit-details-marker { display: none; }
   text-decoration: none;
   color: inherit;
   display: block;
+  min-height: 112px;
   opacity: 0;
   transform: translateY(24px);
   transition: opacity .4s ease, transform .4s ease, border-color .2s, box-shadow .2s;
   box-shadow: 0 2px 6px rgba(0,0,0,.12);
-  min-height: 100px;
 }
 .dyn-card.in {
   opacity: 1;
@@ -689,4 +706,12 @@ details summary::-webkit-details-marker { display: none; }
   overflow: hidden;
 }
 .dyn-card .meta { font-size: .72rem; color: var(--gold); margin-top: 6px; font-weight: 600; }
-.dyn-card.sub { border-style: dashed; opacity: 0.92; }
+.dyn-card.sub { border-style: dashed; }
+.dyn-card.sub.in { opacity: 0.92; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dyn-timeline-wrap { scroll-behavior: auto; }
+  .dyn-card { transition: none; transform: none; }
+  .dyn-card.in { transform: none; }
+  .dyn-card:hover { transform: none; }
+}
