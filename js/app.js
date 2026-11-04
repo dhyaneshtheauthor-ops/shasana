@@ -315,98 +315,117 @@ function inscCard(ins) {
 }
 
 /* KINGS */
-function renderKings() {
-  const all = DATA.kings.filter(k => k.accession_year_ce);
-  const minY = Math.min(...all.map(k => k.accession_year_ce));
-  const maxY = Math.max(...all.map(k => k.end_year_ce || k.accession_year_ce));
-  function layoutLane(dyn) {
-    const kings = DATA.kings.filter(k => k.dynasty === dyn && k.accession_year_ce && k.ruling_status !== "subsidiary").sort((a, b) => a.accession_year_ce - b.accession_year_ce);
-    const items = [];
-    let y = 70;
-    let lastBranch = "";
-    kings.forEach(k => {
-      if (k.dynasty_branch && k.dynasty_branch !== lastBranch) {
-        items.push({ type: "branch", branch: k.dynasty_branch, top: y });
-        y += 36;
-        lastBranch = k.dynasty_branch;
-      }
-      if (collapsedBranches.has(k.dynasty_branch) && k.accession_year_ce < 850) return;
-      const hasBio = k.short_bio && k.short_bio.length > 10;
-      const cardH = hasBio ? 110 : 72;
-      items.push({ type: "king", king: k, top: y, height: cardH });
-      y += cardH + 16;
-    });
-    return { items, height: y + 60 };
-  }
-  const chola = layoutLane("Chola");
-  const pandya = layoutLane("Pandya");
-  const height = Math.max(chola.height, pandya.height, 500);
-  function renderItems(items, dyn) {
-    return items.map(it => {
-      if (it.type === "branch") {
-        const isCol = collapsedBranches.has(it.branch);
-        return `<div class="dyn-branch-toggle${isCol ? " collapsed" : ""}" style="position:absolute;top:${it.top}px;left:12px;right:12px;z-index:5" data-branch="${escapeHtml(it.branch)}">${escapeHtml(it.branch)}</div>`;
-      }
-      const k = it.king;
-      const years = (k.accession_year_ce && k.end_year_ce) ? `${k.accession_year_ce}–${k.end_year_ce}` : (k.century || "");
-      const count = (INDEX.byKing[k.king_id] || []).length;
-      const bio = k.short_bio ? `<div class="bio">${escapeHtml(k.short_bio.slice(0, 100))}</div>` : "";
-      return `<a href="#/king/${k.king_id}" class="dyn-card ${dyn.toLowerCase()} reveal" style="position:absolute;top:${it.top}px;left:12px;right:12px;min-height:${it.height - 16}px" data-era="${escapeHtml(k.dynasty_branch || "")}">
-        <h3>${escapeHtml(k.king_name_standard)}</h3>
-        <div class="years">${escapeHtml(years)}${count ? ` · ${count} insc` : ""}</div>
-        ${bio}
-      </a>`;
-    }).join("");
-  }
-  const yearMarks = [];
-  for (let y = Math.ceil(minY / 50) * 50; y <= maxY; y += 50) {
-    const pct = (y - minY) / Math.max(1, maxY - minY);
-    yearMarks.push(`<div class="dyn-year-label" style="top:${pct * (height - 100) + 50}px">${y}</div>`);
-  }
-  $app().innerHTML = `
-    <div class="dyn-page">
-      <h2>Dynasties</h2>
-      <div class="dyn-switch">
-        <button class="active" data-mode="both">Both</button>
-        <button data-mode="chola">Chola</button>
-        <button data-mode="pandya">Pandya</button>
-      </div>
-      <div class="dyn-timeline" id="dynTl" style="height:${height}px">
-        <div class="dyn-lane" style="height:${height}px">
-          <div class="dyn-lane-header chola"><img src="images/icons/chola_emblem.png" alt="" width="28" height="28"> Chola</div>
-          ${renderItems(chola.items, "Chola")}
-        </div>
-        <div class="dyn-axis" style="height:${height}px"><div class="dyn-axis-line"></div>${yearMarks.join("")}</div>
-        <div class="dyn-lane" style="height:${height}px">
-          <div class="dyn-lane-header pandya"><img src="images/icons/pandya_emblem.png" alt="" width="28" height="28"> Pandya</div>
-          ${renderItems(pandya.items, "Pandya")}
-        </div>
-      </div>
-    </div>
-  `;
-  document.querySelectorAll(".dyn-branch-toggle").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const b = btn.dataset.branch;
-      if (collapsedBranches.has(b)) collapsedBranches.delete(b); else collapsedBranches.add(b);
-      renderKings();
-    });
-  });
-  document.querySelectorAll(".dyn-switch button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".dyn-switch button").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      const mode = btn.dataset.mode;
-      const lanes = document.querySelectorAll(".dyn-lane");
-      lanes[0].style.display = (mode === "pandya") ? "none" : "";
-      lanes[1].style.display = (mode === "chola") ? "none" : "";
-    });
-  });
-  const cards = document.querySelectorAll(".dyn-card.reveal");
-  if ("IntersectionObserver" in window) {
-    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .1 });
-    cards.forEach(c => io.observe(c));
-  } else cards.forEach(c => c.classList.add("in"));
+/* Dynasty timeline */
+.dyn-page { max-width: 1100px; margin: 0 auto; padding-bottom: 20px; }
+.dyn-switch { display: none; gap: 8px; margin-bottom: 16px; }
+@media (max-width: 700px) { .dyn-switch { display: flex; } }
+.dyn-switch button { flex: 1; padding: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 8px; cursor: pointer; }
+.dyn-switch button.active { background: var(--gold); color: #1C1A18; }
+
+.dyn-timeline-wrap {
+  height: calc(100vh - 160px);
+  overflow-y: auto;
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  scroll-behavior: smooth;
 }
+.dyn-timeline {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr;
+  position: relative;
+}
+@media (max-width: 700px) {
+  .dyn-timeline.single { grid-template-columns: 1fr; }
+  .dyn-timeline.single .dyn-axis { display: none; }
+}
+.dyn-lane { position: relative; }
+.dyn-lane-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 12px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  font-weight: 600;
+}
+.dyn-lane-header.chola { border-top: 3px solid var(--kumkum); }
+.dyn-lane-header.pandya { border-top: 3px solid var(--verdigris); }
+.dyn-axis { position: relative; }
+.dyn-axis-line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, transparent, var(--gold) 10%, var(--gold) 90%, transparent);
+  transform: translateX(-50%);
+}
+.dyn-year-label {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: .7rem;
+  color: var(--gold);
+  background: var(--bg);
+  padding: 4px 6px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  min-width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 15;
+  font-weight: 700;
+  box-shadow: 0 0 0 4px var(--bg);
+}
+.dyn-card {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity .4s ease, transform .4s ease, border-color .2s, box-shadow .2s;
+  box-shadow: 0 2px 6px rgba(0,0,0,.12);
+  min-height: 100px;
+}
+.dyn-card.in {
+  opacity: 1;
+  transform: translateY(0);
+}
+.dyn-card:hover {
+  text-decoration: none;
+  border-color: var(--gold);
+  box-shadow: 0 6px 20px rgba(0,0,0,.22);
+  transform: translateY(-3px);
+}
+.dyn-card.chola:hover { border-color: var(--kumkum); }
+.dyn-card.pandya:hover { border-color: var(--verdigris); }
+.dyn-card h3 { margin: 0 0 4px; font-size: .98rem; line-height: 1.3; }
+.dyn-card .years { font-size: .8rem; color: var(--muted); }
+.dyn-card .bio {
+  font-size: .8rem;
+  margin-top: 6px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dyn-card .meta { font-size: .72rem; color: var(--gold); margin-top: 6px; font-weight: 600; }
+.dyn-card.sub { border-style: dashed; opacity: 0.92; }
 
 function kingCard(k) {
   const years = (k.accession_year_ce && k.end_year_ce) ? `${k.accession_year_ce}–${k.end_year_ce}` : (k.century||"");
