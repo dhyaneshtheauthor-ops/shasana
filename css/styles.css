@@ -715,3 +715,32 @@ details summary::-webkit-details-marker { display: none; }
   .dyn-card.in { transform: none; }
   .dyn-card:hover { transform: none; }
 }
+/* Scroll rise — cards float up into place, and float up again as they leave */
+[data-rise] {
+  opacity: 0;
+  translate: 0 26px;
+  transition:
+    opacity .5s cubic-bezier(.22,.61,.36,1),
+    translate .55s cubic-bezier(.22,.61,.36,1),
+    transform .2s ease,
+    border-color .2s ease,
+    box-shadow .2s ease;
+  transition-delay: 0ms;
+}
+[data-rise].is-in {
+  opacity: 1;
+  translate: 0 0;
+  transition-delay: var(--rise-delay, 0ms);
+}
+[data-rise].is-out {
+  opacity: 0;
+  translate: 0 -22px;
+  transition-duration: .28s;
+  transition-delay: 0ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-rise] { opacity: 1; translate: none; transition: none; }
+}
+@media print {
+  [data-rise] { opacity: 1 !important; translate: none !important; }
+}
