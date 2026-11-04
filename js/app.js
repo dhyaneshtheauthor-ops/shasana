@@ -4,6 +4,7 @@ const INDEX = { byKing: {}, temples: [] };
 const collapsedBranches = new Set(["First Empire", "Early", "Early Pandya"]);
 let mapInstance = null;
 let clusterLayer = null;
+let dynCleanup = null;
 const CARTO_KEY = "cb1_4vlf_1_e392d35f157b6850d4b0be27";
 
 const $app = () => document.getElementById("app");
@@ -316,8 +317,6 @@ function inscCard(ins) {
 
 /* KINGS */
 function renderKings() {
-  if (dynCleanup) { dynCleanup(); dynCleanup = null; }
-
   const allKings = DATA.kings.filter(k => k.accession_year_ce);
   if (!allKings.length) {
     $app().innerHTML = "<p>No kings with dates found.</p>";
