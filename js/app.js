@@ -1143,9 +1143,51 @@ function showInscriptionCard(ins) {
     <a href="#/inscription/${encodeURIComponent(ins.arie_id)}" class="read-more">Read more →</a>
   `;
 }
+/* SCROLL RISE — cards float up into place, and float up again as they leave */
+const RISE_SELECTOR = ".card, .insc-card, .stat, .king-sidebar, .king-nav-cards a";
+let riseIO = null;
+
+function riseScan(scope) {
+  const root = scope || $app();
+  if (!root || !root.querySelectorAll) return;
+  const found = root.matches && root.matches(RISE_SELECTOR) ? [root] : [];
+  root.querySelectorAll(RISE_SELECTOR).forEach(el => found.push(el));
+  for (const el of found) {
+    if (el.dataset.rise) continue;
+    el.dataset.rise = "on";
+    if (riseIO) riseIO.observe(el);
+    else el.classList.add("is-in");
+  }
+}
+
+function initRise() {
+  const app = $app();
+  if (!app) return;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduce && "IntersectionObserver" in window) {
+    riseIO = new IntersectionObserver(entries => {
+      for (const e of entries) {
+        const el = e.target;
+        if (e.isIntersecting) {
+          const d = Math.max(0, Math.min(90, (e.boundingClientRect.top / window.innerHeight) * 90));
+          el.style.setProperty("--rise-delay", Math.round(d) + "ms");
+          el.classList.remove("is-out");
+          el.classList.add("is-in");
+        } else if (e.boundingClientRect.top < 0) {
+          el.classList.add("is-out");
+        }
+      }
+    }, { rootMargin: "-32px 0px -6% 0px", threshold: 0 });
+  }
+  riseScan(app);
+  new MutationObserver(muts => {
+    for (const m of muts) for (const n of m.addedNodes) if (n.nodeType === 1) riseScan(n);
+  }).observe(app, { childList: true, subtree: true });
+}
 
 /* Boot */
 initTheme();
+initRise();
 loadData().then(route).catch(err => {
   $app().innerHTML = `<p>Could not load data. ${escapeHtml(err.message)}</p>`;
 });
