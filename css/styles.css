@@ -143,6 +143,157 @@ header.site {
 }
 .search-wrap input:focus { outline: 2px solid var(--gold); border-color: transparent; }
 
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* Home hero — inscription map */
+:root {
+  --map-sea: #241F19;
+  --map-land: #3B342B;
+  --map-line: rgba(201,154,59,.42);
+  --insc-ink: #C99A3B;
+  --insc-en: #F2E9DA;
+}
+[data-theme="light"] {
+  --map-sea: #E7D8B2;
+  --map-land: #D4BE97;
+  --map-line: rgba(122,86,17,.5);
+  --insc-ink: #7A5611;
+  --insc-en: #241D15;
+}
+
+.hero-v2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+  padding: clamp(26px, 4vw, 56px) 0 clamp(20px, 3vw, 40px);
+}
+.hero-copy { min-width: 0; }
+.hero-eyebrow {
+  margin: 0 0 14px;
+  font-size: .74rem;
+  font-weight: 600;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--gold-text);
+}
+.hero-v2 h2 {
+  margin: 0 0 18px;
+  font-size: clamp(1.9rem, 4.2vw, 3rem);
+  line-height: 1.14;
+  font-weight: 600;
+  min-height: 2.3em;
+  background: linear-gradient(90deg, var(--text), var(--muted));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.hero-lede {
+  max-width: 44ch;
+  margin: 0 0 26px;
+  font-size: 1.05rem;
+  color: var(--muted);
+}
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-ghost:hover { border-color: var(--gold); text-decoration: none; }
+.hero-counts { margin: 0; font-size: .86rem; color: var(--muted); }
+
+/* Map panel */
+.hero-map { margin: 0; }
+.hero-map.is-missing { display: none; }
+.hero-v2:has(.hero-map.is-missing) { grid-template-columns: minmax(0, 1fr); }
+.hero-map-frame {
+  position: relative;
+  height: clamp(380px, 54vh, 540px);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(110% 70% at 50% 100%, rgba(201,154,59,.07), transparent 70%),
+    var(--map-sea);
+  transition: border-color .35s var(--ease), box-shadow .35s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.hero-map.is-ready .hero-map-frame { cursor: pointer; }
+.hero-map.is-live .hero-map-frame {
+  border-color: rgba(201,154,59,.45);
+  box-shadow: 0 24px 60px -34px rgba(201,154,59,.7);
+}
+[data-theme="light"] .hero-map.is-live .hero-map-frame {
+  box-shadow: 0 24px 60px -34px rgba(122,86,17,.65);
+}
+.hero-map-frame:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.hero-map-mount, .hero-map-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero-map-svg { display: block; }
+
+/* The drawing is filled by CSS so it follows the theme in both modes. */
+.hero-map-art :is(path, polygon, polyline, circle, ellipse, rect) {
+  fill: var(--map-land);
+  stroke: var(--map-line);
+  stroke-width: 1;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.hero-map-art text { display: none; }
+
+.hero-insc-ta text {
+  fill: var(--insc-ink);
+  font-family: "Noto Serif Tamil", "Noto Sans Tamil", "Noto Sans Grantha", "Noto Sans Brahmi", serif;
+  font-weight: 500;
+  text-anchor: middle;
+}
+.hero-insc-en text {
+  fill: var(--insc-en);
+  font-family: "Libre Baskerville", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: .01em;
+}
+/* The layers are decoration; keeping them out of hit-testing lets the map
+   itself answer where the coastline runs. */
+.hero-insc, .hero-map-ring { pointer-events: none; }
+.hero-map-ring { fill: none; stroke: var(--insc-ink); stroke-width: 1.25; }
+
+.hero-map-hint {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  margin: 0;
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  pointer-events: none;
+  transition: opacity .35s var(--ease);
+}
+.hero-map.is-live .hero-map-hint { opacity: 0; }
+.hero-map-cap {
+  margin: 12px 2px 0;
+  font-size: .75rem;
+  letter-spacing: .04em;
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .hero-v2 { grid-template-columns: minmax(0, 1fr); gap: 26px; }
+  .hero-map { width: min(100%, 470px); margin: 0 auto; }
+  /* Portrait, like Tamil Nadu itself, so the crop keeps the whole coast. */
+  .hero-map-frame { height: clamp(360px, 104vw, 500px); }
+  .hero-v2 h2 { min-height: 3.2em; }
+  .hero-lede { max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-map-frame, .hero-map-hint { transition: none; }
+}
+
 /* Stats */
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0; }
 .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
@@ -773,6 +924,7 @@ details summary::-webkit-details-marker { display: none; }
   .dyn-card.in { transform: none; }
   .dyn-card:hover { transform: none; }
 }
+
 /* Scroll rise — cards float up into place, and float up again as they leave */
 [data-rise] {
   opacity: 0;
