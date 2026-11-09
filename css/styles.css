@@ -150,14 +150,14 @@ header.site {
 
 /* Home hero — inscription map */
 :root {
-  --map-sea: #241F19;
+  --map-sea: var(--bg);
   --map-land: #3B342B;
   --map-line: rgba(201,154,59,.42);
   --insc-ink: #C99A3B;
   --insc-en: #F2E9DA;
 }
 [data-theme="light"] {
-  --map-sea: #E7D8B2;
+  --map-sea: var(--bg);
   --map-land: #D4BE97;
   --map-line: rgba(122,86,17,.5);
   --insc-ink: #7A5611;
@@ -166,10 +166,15 @@ header.site {
 
 .hero-v2 {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: clamp(24px, 4vw, 56px);
   align-items: center;
   padding: clamp(26px, 4vw, 56px) 0 clamp(20px, 3vw, 40px);
+}
+.hero-map {
+  justify-self: end;
+  width: min(100%, 560px);
+  max-width: none;
 }
 .hero-copy { min-width: 0; }
 .hero-eyebrow {
@@ -206,17 +211,27 @@ header.site {
 .hero-map { margin: 0; }
 .hero-map.is-missing { display: none; }
 .hero-v2:has(.hero-map.is-missing) { grid-template-columns: minmax(0, 1fr); }
+/* Ocean is transparent so the page backdrop shows through — the continent
+   reads as if it is placed directly on the screen. The map floats to the
+   right edge of the hero frame with no visible box around it. */
 .hero-map-frame {
   position: relative;
   height: clamp(380px, 54vh, 540px);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  overflow: hidden;
-  background:
-    radial-gradient(110% 70% at 50% 100%, rgba(201,154,59,.07), transparent 70%),
-    var(--map-sea);
-  transition: border-color .35s var(--ease), box-shadow .35s var(--ease);
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  transition: box-shadow .35s var(--ease);
   -webkit-tap-highlight-color: transparent;
+}
+.hero-map-frame::after {
+  /* hairline so the map edge is still legible against the page on both themes */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 1px 0 0 var(--border);
+  z-index: 3;
 }
 .hero-map.is-ready .hero-map-frame { cursor: pointer; }
 .hero-map.is-live .hero-map-frame {
@@ -284,9 +299,8 @@ header.site {
 
 @media (max-width: 900px) {
   .hero-v2 { grid-template-columns: minmax(0, 1fr); gap: 26px; }
-  .hero-map { width: min(100%, 470px); margin: 0 auto; }
-  /* Portrait, like Tamil Nadu itself, so the crop keeps the whole coast. */
-  .hero-map-frame { height: clamp(360px, 104vw, 500px); }
+  .hero-map { width: min(100%, 520px); margin: 0 auto; justify-self: center; }
+  .hero-map-frame { height: clamp(340px, 96vw, 460px); }
   .hero-v2 h2 { min-height: 3.2em; }
   .hero-lede { max-width: none; }
 }
