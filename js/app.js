@@ -5,6 +5,7 @@ const collapsedBranches = new Set(["First Empire", "Early", "Early Pandya"]);
 let mapInstance = null;
 let clusterLayer = null;
 let dynCleanup = null;
+let heroCleanup = null;
 const CARTO_KEY = "cb1_4vlf_1_e392d35f157b6850d4b0be27";
 
 const $app = () => document.getElementById("app");
@@ -78,6 +79,7 @@ function clipText(text, max) {
   const body = (space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[,;:.\-–—]+$/, "");
   return body + "…";
 }
+
 function expandCenturies(raw) {
   if (!raw) return [];
   const s = String(raw).toLowerCase();
@@ -129,6 +131,8 @@ document.getElementById("themeToggle").addEventListener("click", () => {
 
 /* Routing */
 function route() {
+  if (dynCleanup) { dynCleanup(); dynCleanup = null; }
+  if (heroCleanup) { heroCleanup(); heroCleanup = null; }
   const hash = location.hash.slice(1) || "/";
   const [path, qs] = hash.split("?");
   const parts = path.split("/").filter(Boolean);
@@ -156,11 +160,26 @@ function renderHome() {
   const totalKings = DATA.kings.length;
   const years = new Set(DATA.inscriptions.map(i => i.arie_year).filter(Boolean)).size;
   $app().innerHTML = `
-    <section class="hero" style="min-height:60vh;padding:80px 20px 40px;text-align:center">
-      <h2 id="heroText" style="font-size:clamp(2rem,5vw,3.2rem);max-width:720px;margin:0 auto 16px;font-weight:600"></h2>
-      <p class="muted" style="max-width:560px;margin:0 auto 24px;font-size:1.1rem">Search temples, kings and dynasties across Tamil Nadu. Open any pin to see the temple and the king behind it.</p>
-      <a href="#/map" class="btn" style="display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:8px;background:var(--gold);color:#1C1A18;font-weight:600;text-decoration:none">Open the interactive map →</a>
-      <p class="muted" style="margin-top:12px;font-size:.9rem">${totalInsc} inscriptions across ${totalTemples} temples and ${totalKings} kings</p>
+    <section class="hero-v2">
+      <div class="hero-copy">
+        <p class="hero-eyebrow">Tamil Nadu · Chola &amp; Pandya records</p>
+        <h2 id="heroText"></h2>
+        <p class="hero-lede">Search temples, kings and dynasties across Tamil Nadu. Open any pin to see the temple and the king behind it.</p>
+        <div class="hero-actions">
+          <a href="#/map" class="btn">Open the interactive map <span aria-hidden="true">→</span></a>
+          <a href="#/search" class="btn btn-ghost">Search the corpus</a>
+        </div>
+        <p class="hero-counts">${totalInsc} inscriptions · ${totalTemples} temples · ${totalKings} kings</p>
+      </div>
+
+      <figure class="hero-map" id="heroMap">
+        <div class="hero-map-frame" tabindex="0" role="button" aria-label="Map of Tamil Nadu carrying an inscription; activate to read the translation">
+          <div class="hero-map-mount"></div>
+          <p class="hero-map-hint" aria-hidden="true">Hover · tap to translate</p>
+        </div>
+        <figcaption class="hero-map-cap">Tanjavur · 29th regnal year of Rajaraja I</figcaption>
+        <p class="sr-only" id="heroMapAlt"></p>
+      </figure>
     </section>
 
     <div class="stats">
@@ -207,8 +226,515 @@ function renderHome() {
       </div>
     </section>
   `;
-  typewriter("heroText", "Every Chola and Pandya inscription, placed on one map");
+  /* Reserve the headline's final height before typing, so the copy column
+     does not jump while the line fills in. */
+  const headline = "Every Chola and Pandya inscription, placed on one map";
+  const h2 = document.getElementById("heroText");
+  if (h2 && h2.parentNode) {
+    const probe = h2.cloneNode(false);
+    probe.removeAttribute("id");
+    probe.style.minHeight = "0";
+    probe.style.visibility = "hidden";
+    probe.style.position = "absolute";
+    probe.style.left = "0";
+    probe.style.top = "0";
+    probe.style.width = h2.getBoundingClientRect().width + "px";
+    probe.textContent = headline;
+    h2.parentNode.appendChild(probe);
+    h2.style.minHeight = Math.ceil(probe.getBoundingClientRect().height) + "px";
+    probe.remove();
+  }
+  typewriter("heroText", headline);
+  initHeroMap();
 }
+
+/* HOME HERO — map + inscription ----------------------------------------- */
+
+const HERO_MAP = {
+  src: "images/header_map.svg",
+  /* The drawing is only used for its outline. These bounds say which part of
+     the globe the drawing covers, so the Tamil Nadu crop can be placed in
+     degrees instead of guessed pixels. */
+  geo: { lon: [67.8, 97.6], lat: [6.0, 37.4] },
+  /* What the header shows: Tamil Nadu and the country around her. */
+  crop: { lon: [75.7, 80.9], lat: [7.4, 14.1] }
+};
+
+const INSCRIPTION_TAMIL = "𑌸𑍍𑌵𑌸𑍍𑌤𑌿 𑌶𑍍𑌰𑍀 திருமகள் பொலப்பெருநிலச்செல்வியுந்தனக்கெயுரிமை பூண்டமை மனக்கொள்க்காந்தளூச்சாலை கலமறுத்தருளி வெங்கைநாடுங்கங்கபாடியுநுளம்பபாடியுந்தடிகைபாடியுங்குடமலைநாடுங்கொல்லமுங்கலிங்கமும் எண்டிசை புகழ் தர ஈழமண்டலமும் இரட்டபாடி எழரை இலக்கமுந்திரண்டிறல் வென்றித்தண்டாற்கொண்ட தன்னெழில் வளரூழியுளெல்லாயாண்டுந்தொழுதக விளங்கும் யாண்டெ செழியரைத்தசு கொள் கொராஐகெஸரிவர்மரான 𑌶𑍍𑌰𑍀ராஜராஜ தெவர்க்கு யாண்டு இருபத்தொன்பதாவது வரை உடையார் 𑌶𑍍𑌰𑍀ராஜராஜீஸ்வரம் உடையார்க்குத் திருருவிளக்குக்கு உடையார் 𑌶𑍍𑌰𑍀ராஜராஜதெவர் குடுத்த கால்மாட்டிலுங்குடுத்தார் குடுத்த கால்மாட்டிலுங்காசு குடுத்து முதலான கால்மாட்டிலும் திருவிளக்குக்கு நெய் அளக்க கடவர்களாக இடையர் வழி திருவிளக்கு ஒன்றினுக்கு ஆடு தொண்ணூற்றுறுகவும் பசு நாற்பத்தெட்டாகவும் எருமை பதிநாறாகவும் இவையிற்று...";
+
+const INSCRIPTION_ENGLISH = "Hail! Prosperity! While the goddess of fortune, the goddess of the great earth, and the goddess of victory became his exclusive right, he destroyed the ships at Kanthalur Salai, and conquered Vengainadu, Gangapadi, Nulambapadi, Thadigaipadi, Kudamalainadu, Kollam, Kalingam, Elamandalam whose fame spread to all eight directions, and Rattapadi seven and a half lakshas, with his formidable and victorious army. In the twenty-ninth year of the reign of Ko-Rajarakesarivarman, also known as Sri Rajaraja Deva, who shines brightly with growing grace through all the ages, the following endowment was made for the sacred lamps of the deity at Sri Rajarajeswaram. Sri Rajaraja Deva gave sheep and cattle. With the money given for the cattle, the shepherds are bound to measure out ghee for the sacred lamps. For one sacred lamp following the shepherd lineage, ninety-six sheep, forty-eight cows, and sixteen buffaloes were given.";
+
+async function initHeroMap() {
+  const figure = document.getElementById("heroMap");
+  if (!figure) return;
+  const frame = figure.querySelector(".hero-map-frame");
+  const mount = figure.querySelector(".hero-map-mount");
+  if (!frame || !mount) return;
+  const alt = figure.querySelector("#heroMapAlt");
+
+  let source = "";
+  try {
+    const res = await fetch(HERO_MAP.src);
+    if (!res.ok) throw new Error("header map " + res.status);
+    source = await res.text();
+  } catch (err) {
+    figure.classList.add("is-missing");   // no drawing yet: the hero keeps its text
+    return;
+  }
+  if (!frame.isConnected) return;
+
+  const parsed = new DOMParser().parseFromString(source, "image/svg+xml");
+  if (!parsed || parsed.querySelector("parsererror") || parsed.documentElement.nodeName.toLowerCase() !== "svg") {
+    figure.classList.add("is-missing");
+    return;
+  }
+
+  const NS = "http://www.w3.org/2000/svg";
+  const node = (name, attrs) => {
+    const n = document.createElementNS(NS, name);
+    if (attrs) Object.keys(attrs).forEach(k => n.setAttribute(k, attrs[k]));
+    return n;
+  };
+
+  const svg = node("svg", { class: "hero-map-svg", "aria-hidden": "true" });
+  const defs = node("defs");
+
+  /* The drawing itself. Its shapes are painted by CSS so the map follows the
+     theme, and its geometry is what both the crop and the text clip use. */
+  const art = node("g", { id: "heroMapArt", class: "hero-map-art" });
+  while (parsed.documentElement.firstChild) art.appendChild(parsed.documentElement.firstChild);
+
+  /* The land mask is a copy of the drawing painted white, so both text layers
+     stop at the coastline. A mask (not a clipPath) because a transform inside
+     a clipPath is unreliable across browsers. */
+  // x/y must be set: left at their defaults the mask region starts 10% above
+  // the origin and stops 10% short of the far edge, hiding the last lines.
+  const landMask = node("mask", {
+    id: "heroLandMask", maskUnits: "userSpaceOnUse", maskContentUnits: "userSpaceOnUse", x: "0", y: "0"
+  });
+  const landShape = node("g");
+  const landCopy = art.cloneNode(true);
+  landCopy.removeAttribute("id");
+  landCopy.removeAttribute("class");
+  landCopy.querySelectorAll("[id]").forEach(n => n.removeAttribute("id"));
+  landCopy.querySelectorAll("path, polygon, polyline, rect, circle, ellipse").forEach(n => {
+    n.setAttribute("fill", "#fff");
+    n.removeAttribute("stroke");
+  });
+  landShape.appendChild(landCopy);
+  landMask.appendChild(landShape);
+  defs.appendChild(landMask);
+
+  /* The ripple is a clipped circle: clip-path and mask then sit on one element,
+     which renders far more predictably than nesting one inside the other. */
+  const rippleClip = node("clipPath", { id: "heroRippleClip", clipPathUnits: "userSpaceOnUse" });
+  const maskDot = node("circle", { cx: "0", cy: "0", r: "0" });
+  rippleClip.appendChild(maskDot);
+  defs.appendChild(rippleClip);
+
+  const view = node("g", { class: "hero-map-view" });
+  view.appendChild(art);
+
+  const tamilLayer = node("g", { class: "hero-insc hero-insc-ta", mask: "url(#heroLandMask)" });
+  const englishLayer = node("g", { class: "hero-insc hero-insc-en", mask: "url(#heroLandMask)" });
+  const englishReveal = node("g", { "clip-path": "url(#heroRippleClip)" });
+  englishLayer.appendChild(englishReveal);
+
+  const ring = node("circle", { class: "hero-map-ring", cx: "0", cy: "0", r: "0" });
+
+  svg.append(defs, view, tamilLayer, englishLayer, ring);
+  mount.appendChild(svg);
+  if (alt) alt.textContent = "Tamil inscription with its English translation: " + INSCRIPTION_ENGLISH;
+
+  const segmenter = (() => {
+    try { return new Intl.Segmenter("ta", { granularity: "grapheme" }); } catch (e) { return null; }
+  })();
+  const glyphs = segmenter
+    ? Array.from(segmenter.segment(INSCRIPTION_TAMIL), part => part.segment)
+    : (INSCRIPTION_TAMIL.match(/\P{M}\p{M}*/gu) || Array.from(INSCRIPTION_TAMIL));
+
+  const narrowQuery = window.matchMedia("(max-width: 767px)");
+  let W = 0, H = 0, box = null, span = 1;
+
+  /* Frame the crop and lay both layers out inside it. Everything lives in the
+     panel's own pixel grid, so a resize is just another measurement. */
+  function resize() {
+    if (!svg.isConnected) return;
+    const rect = frame.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    W = rect.width;
+    H = rect.height;
+    span = Math.hypot(W, H);
+    svg.setAttribute("viewBox", "0 0 " + W.toFixed(2) + " " + H.toFixed(2));
+
+    const b = art.getBBox();
+    if (!b || !b.width || !b.height) {
+      box = { x: 12, y: 12, x2: W - 12, y2: H - 12 };
+      layoutText();
+      paint();
+      return;
+    }
+
+    const g = HERO_MAP.geo, c = HERO_MAP.crop;
+    const sx = b.width / (g.lon[1] - g.lon[0]);
+    const sy = b.height / (g.lat[1] - g.lat[0]);
+    const x0 = b.x + (c.lon[0] - g.lon[0]) * sx;
+    const x1 = b.x + (c.lon[1] - g.lon[0]) * sx;
+    const y0 = b.y + (g.lat[1] - c.lat[1]) * sy;
+    const y1 = b.y + (g.lat[1] - c.lat[0]) * sy;
+    const s = Math.max(W / Math.max(1, x1 - x0), H / Math.max(1, y1 - y0));
+    const tx = W / 2 - ((x0 + x1) / 2) * s;
+    const ty = H / 2 - ((y0 + y1) / 2) * s;
+    const t = "translate(" + tx.toFixed(2) + " " + ty.toFixed(2) + ") scale(" + s.toFixed(5) + ")";
+    view.setAttribute("transform", t);
+    landShape.setAttribute("transform", t);
+    landMask.setAttribute("width", W.toFixed(2));
+    landMask.setAttribute("height", H.toFixed(2));
+
+    const left = Math.max(10, b.x * s + tx);
+    const top = Math.max(10, b.y * s + ty);
+    const right = Math.min(W - 10, (b.x + b.width) * s + tx);
+    const bottom = Math.min(H - 10, (b.y + b.height) * s + ty);
+    box = (right - left > 40 && bottom - top > 40)
+      ? { x: left, y: top, x2: right, y2: bottom }
+      : { x: 12, y: 12, x2: W - 12, y2: H - 12 };
+
+    spanCache.clear();
+    rasterizeLand();
+    layoutText();
+    paint();
+  }
+
+  /* The inscription is a field of single glyphs on a square grid, sized so the
+     whole text fits the land; the coastline clip does the shaping. */
+  function layoutText() {
+    if (!box) return;
+    const bw = Math.max(40, box.x2 - box.x);
+    const bh = Math.max(40, box.y2 - box.y);
+    const CELL_W = 1.44, CELL_H = 1.52, n = glyphs.length;
+    let fs = 12, cols = 0, rows = 0;
+    for (let i = 0; i < 80; i++) {
+      cols = Math.max(4, Math.floor(bw / (fs * CELL_W)));
+      rows = Math.ceil(n / cols);
+      if (rows * fs * CELL_H <= bh) break;
+      fs *= 0.972;
+      if (fs < 5.5) { fs = 5.5; break; }
+    }
+
+    const cw = fs * CELL_W, ch = fs * CELL_H;
+    const x0 = box.x + Math.max(0, (bw - cols * cw) / 2);
+    const y0 = box.y + Math.max(0, (bh - rows * ch) / 2);
+    const frag = document.createDocumentFragment();
+    glyphs.forEach((glyph, i) => {
+      if (!glyph.trim()) return;
+      const r = Math.floor(i / cols);
+      const c = i - r * cols;
+      const t = node("text", {
+        x: (x0 + c * cw + cw / 2).toFixed(2),
+        y: (y0 + r * ch + ch / 2 + fs * 0.34).toFixed(2),
+        "font-size": fs.toFixed(2)
+      });
+      t.textContent = glyph;
+      frag.appendChild(t);
+    });
+    tamilLayer.replaceChildren(frag);
+
+    layoutEnglish();
+  }
+
+  /* The drawing is rasterised once per resize so the translation can ask where
+     the land actually is, line by line. Canvas hit-testing also works while
+     the panel is off-screen, which elementFromPoint does not. */
+  let landData = null;
+  function rasterizeLand() {
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(W));
+    canvas.height = Math.max(1, Math.round(H));
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.fillStyle = "#fff";
+    art.querySelectorAll("path, polygon, polyline, rect, circle, ellipse").forEach(el => {
+      const ctm = el.getCTM();
+      if (!ctm) return;
+      const tag = el.tagName.toLowerCase();
+      const num = n => parseFloat(el.getAttribute(n) || "0");
+      const shape = new Path2D();
+      if (tag === "path") {
+        const d = el.getAttribute("d");
+        if (!d) return;
+        try { shape.addPath(new Path2D(d)); } catch (err) { return; }
+      } else if (tag === "rect") {
+        shape.rect(num("x"), num("y"), num("width"), num("height"));
+      } else if (tag === "circle") {
+        shape.arc(num("cx"), num("cy"), num("r"), 0, Math.PI * 2);
+      } else if (tag === "ellipse") {
+        shape.ellipse(num("cx"), num("cy"), num("rx"), num("ry"), 0, 0, Math.PI * 2);
+      } else {
+        const pts = (el.getAttribute("points") || "").trim().split(/[\s,]+/).map(Number);
+        if (pts.length < 6) return;
+        shape.moveTo(pts[0], pts[1]);
+        for (let i = 2; i < pts.length; i += 2) shape.lineTo(pts[i], pts[i + 1]);
+        shape.closePath();
+      }
+      ctx.save();
+      ctx.setTransform(ctm.a, ctm.b, ctm.c, ctm.d, ctm.e, ctm.f);
+      ctx.fill(shape);
+      ctx.restore();
+    });
+    try { landData = ctx.getImageData(0, 0, canvas.width, canvas.height); } catch (err) { landData = null; }
+  }
+
+  function isLand(x, y) {
+    if (!landData) return false;
+    const px = Math.round(x);
+    const py = Math.round(y);
+    if (px < 0 || py < 0 || px >= landData.width || py >= landData.height) return false;
+    return landData.data[(py * landData.width + px) * 4 + 3] > 8;
+  }
+
+  const spanCache = new Map();
+  function spanAt(y) {
+    const key = Math.round(y / 3);
+    if (!spanCache.has(key)) spanCache.set(key, landSpanAt(key * 3));
+    return spanCache.get(key);
+  }
+
+  function landSpanAt(y) {
+    if (!box) return null;
+    const step = Math.max(2, W / 96);
+    let best = null;
+    let start = null;
+    for (let x = box.x; x <= box.x2 + step * 0.5; x += step) {
+      const px = Math.min(x, box.x2);
+      const on = isLand(px, y);
+      if (on && start === null) start = x;
+      else if (!on && start !== null) {
+        if (!best || px - start > best[1] - best[0]) best = [start, px - step];
+        start = null;
+      }
+    }
+    if (start !== null && (!best || box.x2 - start > best[1] - best[0])) best = [start, box.x2];
+    return best;
+  }
+
+  let measureCtx = null;
+  function textWidth(text, size) {
+    if (!measureCtx) measureCtx = document.createElement("canvas").getContext("2d");
+    measureCtx.font = '400 ' + size.toFixed(2) + 'px "Libre Baskerville", Georgia, serif';
+    return measureCtx.measureText(text).width;
+  }
+
+  function layoutEnglish() {
+    if (!box) return;
+    const words = INSCRIPTION_ENGLISH.split(/\s+/).filter(Boolean);
+    const bw = Math.max(60, box.x2 - box.x);
+    const bh = Math.max(60, box.y2 - box.y);
+    // Narrow panels need tighter leading and a smaller floor or the paragraph
+    // runs out of rows before the last word.
+    const leading = bw < 390 ? 1.42 : 1.5;
+    spanCache.clear();
+
+    function buildLines(size) {
+      const lh = size * leading;
+      const rows = Math.floor((bh - size) / lh);
+      let next = 0;
+      const out = [];
+      for (let row = 0; row < rows && next < words.length; row++) {
+        const y = box.y + row * lh + size * 1.15;
+        // The line must sit on land from its ascender to its descender, so ask
+        // for both and keep only the part of the row that is land all the way.
+        const cap = spanAt(y - size * 0.45);
+        const foot = spanAt(y + size * 0.22);
+        if (!cap || !foot) continue;
+        const span = [Math.max(cap[0], foot[0]), Math.min(cap[1], foot[1])];
+        if (span[1] - span[0] < 26) continue;
+        const avail = span[1] - span[0] - 3;
+        if (avail < 26) continue;
+        const start = next;
+        let line = words[next];
+        next++;
+        while (next < words.length) {
+          const wider = line + " " + words[next];
+          if (textWidth(wider, size) > avail) break;
+          line = wider;
+          next++;
+        }
+        const width = textWidth(line, size);
+        // Every glyph of the line has to sit on land, otherwise the coast cuts
+        // it in half. If it does not, leave the words for the next row.
+        const solid = [0, 0.25, 0.5, 0.75, 1].every(f => {
+          const x = span[0] + 1 + width * f;
+          return isLand(x, y - size * 0.45) && isLand(x, y + size * 0.22);
+        });
+        if (!solid) { next = start; continue; }
+        out.push({ text: line, x: span[0] + 1, y: y, width: width, avail: avail, end: next >= words.length });
+      }
+      return { lines: out, size: size, complete: next >= words.length };
+    }
+
+    // Grow the type until the paragraph fills the land, shrink it until it fits.
+    let lo = Math.max(7.2, Math.min(8.6, bw / 42));
+    let hi = Math.max(11, Math.min(15.5, bw / 26));
+    let best = buildLines(lo);
+    for (let i = 0; i < 9; i++) {
+      const mid = (lo + hi) / 2;
+      const attempt = buildLines(mid);
+      if (attempt.complete) { best = attempt; lo = mid; } else { hi = mid; }
+    }
+
+    const frag = document.createDocumentFragment();
+    best.lines.forEach(line => {
+      const t = node("text", { x: line.x.toFixed(1), y: line.y.toFixed(1), "font-size": best.size.toFixed(2) });
+      const stretch = line.width ? line.avail / line.width : 9;
+      if (!line.end && stretch > 1 && stretch < 1.12) {
+        t.setAttribute("textLength", line.avail.toFixed(1));
+        t.setAttribute("lengthAdjust", "spacing");
+      }
+      t.textContent = line.text;
+      frag.appendChild(t);
+    });
+    englishReveal.replaceChildren(frag);
+  }
+
+  let radius = 0, cx = 0, cy = 0, rafId = 0, demoTimer = 0, hideTimer = 0;
+  let active = false;
+  const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function paint() {
+    const sx = cx.toFixed(2), sy = cy.toFixed(2), sr = radius.toFixed(2);
+    maskDot.setAttribute("r", sr);
+    maskDot.setAttribute("cx", sx);
+    maskDot.setAttribute("cy", sy);
+    ring.setAttribute("r", sr);
+    ring.setAttribute("cx", sx);
+    ring.setAttribute("cy", sy);
+    const p = Math.min(1, radius / Math.max(1, span));
+    tamilLayer.style.opacity = (1 - 0.92 * Math.min(1, p * 1.7)).toFixed(3);
+    ring.style.opacity = (radius > 2 ? 0.55 * (1 - p) : 0).toFixed(3);
+  }
+
+  function animateTo(on, x, y) {
+    if (typeof x === "number" && typeof y === "number") { cx = x; cy = y; }
+    const to = on ? span : 0;
+    const from = radius;
+    const dur = reduced() ? 0 : (on ? 820 : 620);
+    const start = performance.now();
+    cancelAnimationFrame(rafId);
+    if (!dur) { radius = to; paint(); return; }
+    const step = now => {
+      const k = Math.min(1, (now - start) / dur);
+      const e = 1 - Math.pow(1 - k, 3);
+      radius = from + (to - from) * e;
+      paint();
+      if (k < 1) rafId = requestAnimationFrame(step);
+    };
+    paint();
+    rafId = requestAnimationFrame(step);
+  }
+
+  function localPoint(e) {
+    const r = svg.getBoundingClientRect();
+    return {
+      x: Math.max(0, Math.min(W, e.clientX - r.left)),
+      y: Math.max(0, Math.min(H, e.clientY - r.top))
+    };
+  }
+
+  function activate(pt) {
+    active = true;
+    figure.classList.add("is-live");
+    clearTimeout(demoTimer);
+    clearTimeout(hideTimer);
+    if (pt) animateTo(true, pt.x, pt.y);
+    else animateTo(true);
+  }
+
+  function deactivate() {
+    active = false;
+    figure.classList.remove("is-live");
+    animateTo(false);
+    scheduleDemo();
+  }
+
+  /* Ripples on their own, so the page shows the reader what the map does. */
+  function scheduleDemo() {
+    clearTimeout(demoTimer);
+    if (reduced()) return;
+    const mobile = narrowQuery.matches;
+    const delay = mobile ? 4800 + Math.random() * 2200 : 11000 + Math.random() * 5000;
+    demoTimer = setTimeout(() => {
+      if (!svg.isConnected) return;
+      if (!active && box) {
+        const px = box.x + (0.16 + Math.random() * 0.68) * (box.x2 - box.x);
+        const py = box.y + (0.14 + Math.random() * 0.6) * (box.y2 - box.y);
+        animateTo(true, px, py);
+        hideTimer = setTimeout(() => {
+          if (!active) animateTo(false);
+        }, mobile ? 1800 : 2200);
+      }
+      scheduleDemo();
+    }, delay);
+  }
+
+  frame.addEventListener("pointerenter", e => {
+    if (e.pointerType === "touch") return;
+    activate(localPoint(e));
+  });
+  frame.addEventListener("pointerleave", e => {
+    if (e.pointerType === "touch") return;
+    deactivate();
+  });
+  frame.addEventListener("pointerup", e => {
+    if (e.pointerType === "mouse") return;
+    if (active) deactivate();
+    else activate(localPoint(e));
+  });
+  frame.addEventListener("click", e => {
+    // Keyboard-activated clicks arrive with detail 0; touch is handled above.
+    if (e.detail !== 0) return;
+    if (active) deactivate();
+    else activate({ x: W / 2, y: H / 2 });
+  });
+  frame.addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    if (active) deactivate();
+    else activate({ x: W / 2, y: H / 2 });
+  });
+
+  let pending = 0;
+  const onResize = () => {
+    if (pending) return;
+    pending = requestAnimationFrame(() => { pending = 0; resize(); });
+  };
+  window.addEventListener("resize", onResize);
+  let ro = null;
+  if ("ResizeObserver" in window) {
+    ro = new ResizeObserver(onResize);
+    ro.observe(frame);
+  }
+
+  figure.classList.add("is-ready");
+  cx = W / 2;
+  cy = H / 2;
+  resize();
+  paint();
+  scheduleDemo();
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => { if (svg.isConnected) { resize(); } });
+  }
+
+  heroCleanup = () => {
+    cancelAnimationFrame(rafId);
+    if (pending) cancelAnimationFrame(pending);
+    clearTimeout(demoTimer);
+    clearTimeout(hideTimer);
+    if (ro) ro.disconnect();
+    window.removeEventListener("resize", onResize);
+    figure.classList.remove("is-ready", "is-live");
+  };
+}
+
 
 function templeCard(t) {
   const slug = encodeURIComponent(t.name + "|" + t.place);
@@ -1234,6 +1760,7 @@ function showInscriptionCard(ins) {
     <a href="#/inscription/${encodeURIComponent(ins.arie_id)}" class="read-more">Read more →</a>
   `;
 }
+
 /* SCROLL RISE — cards float up into place, and float up again as they leave */
 const RISE_SELECTOR = ".card, .insc-card, .stat, .king-sidebar, .king-nav-cards a";
 let riseIO = null;
