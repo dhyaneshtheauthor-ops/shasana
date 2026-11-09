@@ -133,8 +133,6 @@ document.getElementById("themeToggle").addEventListener("click", () => {
 function route() {
   if (dynCleanup) { dynCleanup(); dynCleanup = null; }
   if (heroCleanup) { heroCleanup(); heroCleanup = null; }
-  const intro = document.getElementById("heroIntro");
-  if (intro && intro._cleanup) { intro._cleanup(); }
   const hash = location.hash.slice(1) || "/";
   const [path, qs] = hash.split("?");
   const parts = path.split("/").filter(Boolean);
@@ -248,6 +246,79 @@ function renderHome() {
   }
   typewriter("heroText", headline);
   initHeroMap();
+  renderHeroIntro();
+}
+
+/* HOME HERO — scroll-reveal intro block ----------------------------------------- */
+
+const INTRO_TEXT = "Chola and Pandya kings recorded land grants, temple gifts and village rules on temple walls. Now you can read them from one place.";
+
+function renderHeroIntro() {
+  const app = $app();
+  if (!app) return;
+  // Insert intro block after the hero-map figure, before the stats.
+  const heroMapFig = app.querySelector("figure.hero-map");
+  if (!heroMapFig) return;
+
+  const words = INTRO_TEXT.split(/\s+/).filter(Boolean);
+  const wordSpans = words.map(w => `<span class="word">${escapeHtml(w)}</span>`).join(" ");
+
+  const intro = document.createElement("section");
+  intro.className = "hero-intro";
+  intro.id = "heroIntro";
+  intro.innerHTML = `<h3>${wordSpans}</h3>`;
+  heroMapFig.after(intro);
+
+  // Split into words and reveal word-by-word on scroll.
+  const h3 = intro.querySelector("h3");
+  if (!h3) return;
+  const spans = Array.from(h3.querySelectorAll(".word"));
+  let revealed = 0;
+  let rafScheduled = false;
+  const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const revealNext = () => {
+    if (reducedMotion()) {
+      spans.forEach(s => s.classList.add("is-in"));
+      return;
+    }
+    if (revealed >= spans.length) return;
+    // Reveal up to 2 words per frame so the whole reveal completes in about 2s
+    // when scrolling slowly; faster scroll reveals more per frame.
+    const perFrame = Math.max(1, Math.ceil(spans.length / 60));
+    const batch = Math.min(perFrame, spans.length - revealed);
+    for (let i = 0; i < batch; i++) {
+      if (revealed < spans.length) {
+        spans[revealed].classList.add("is-in");
+        revealed++;
+      }
+    }
+    if (revealed < spans.length) {
+      rafScheduled = true;
+      requestAnimationFrame(() => { rafScheduled = false; revealNext(); });
+    }
+  };
+
+  const checkScroll = () => {
+    if (!intro.isConnected) return;
+    const rect = intro.getBoundingClientRect();
+    const triggerPoint = window.innerHeight * 0.6;
+    if (rect.top < triggerPoint && rect.bottom > 0) {
+      revealNext();
+    }
+  };
+
+  // Initial check and continuous scroll listener.
+  checkScroll();
+  window.addEventListener("scroll", checkScroll, { passive: true });
+  window.addEventListener("resize", checkScroll, { passive: true });
+
+  // Ensure cleanup if the user navigates away.
+  const cleanup = () => {
+    window.removeEventListener("scroll", checkScroll);
+    window.removeEventListener("resize", checkScroll);
+  };
+  intro._cleanup = cleanup;
 }
 
 /* HOME HERO — map + inscription ----------------------------------------- */
@@ -259,7 +330,7 @@ const HERO_MAP = {
      degrees instead of guessed pixels. */
   geo: { lon: [67.8, 97.6], lat: [6.0, 37.4] },
   /* What the header shows: Tamil Nadu and the country around her. */
-  crop: { lon: [75.7, 80.9], lat: [6.8, 14.6] }
+  crop: { lon: [75.7, 80.9], lat: [7.4, 14.1] }
 };
 
 const INSCRIPTION_TAMIL = "𑌸𑍍𑌵𑌸𑍍𑌤𑌿 𑌶𑍍𑌰𑍀 திருமகள் பொலப்பெருநிலச்செல்வியுந்தனக்கெயுரிமை பூண்டமை மனக்கொள்க்காந்தளூச்சாலை கலமறுத்தருளி வெங்கைநாடுங்கங்கபாடியுநுளம்பபாடியுந்தடிகைபாடியுங்குடமலைநாடுங்கொல்லமுங்கலிங்கமும் எண்டிசை புகழ் தர ஈழமண்டலமும் இரட்டபாடி எழரை இலக்கமுந்திரண்டிறல் வென்றித்தண்டாற்கொண்ட தன்னெழில் வளரூழியுளெல்லாயாண்டுந்தொழுதக விளங்கும் யாண்டெ செழியரைத்தசு கொள் கொராஐகெஸரிவர்மரான 𑌶𑍍𑌰𑍀ராஜராஜ தெவர்க்கு யாண்டு இருபத்தொன்பதாவது வரை உடையார் 𑌶𑍍𑌰𑍀ராஜராஜீஸ்வரம் உடையார்க்குத் திருருவிளக்குக்கு உடையார் 𑌶𑍍𑌰𑍀ராஜராஜதெவர் குடுத்த கால்மாட்டிலுங்குடுத்தார் குடுத்த கால்மாட்டிலுங்காசு குடுத்து முதலான கால்மாட்டிலும் திருவிளக்குக்கு நெய் அளக்க கடவர்களாக இடையர் வழி திருவிளக்கு ஒன்றினுக்கு ஆடு தொண்ணூற்றுறுகவும் பசு நாற்பத்தெட்டாகவும் எருமை பதிநாறாகவும் இவையிற்று...";
@@ -384,16 +455,10 @@ async function initHeroMap() {
     const x1 = b.x + (c.lon[1] - g.lon[0]) * sx;
     const y0 = b.y + (g.lat[1] - c.lat[1]) * sy;
     const y1 = b.y + (g.lat[1] - c.lat[0]) * sy;
-    // Fit height-first so the full south-to-north landmass stays on screen;
-    // the west/east coasts can bleed off the sides if the frame is narrow.
     const s = Math.max(W / Math.max(1, x1 - x0), H / Math.max(1, y1 - y0));
-    // If height is the constraint, nudge scale so the southern tip sits at the
-    // bottom edge instead of being cropped.
-    const heightFits = H / Math.max(1, y1 - y0) >= W / Math.max(1, x1 - x0);
-    const sFinal = heightFits ? Math.max(s, H / Math.max(1, y1 - y0)) : s;
     const tx = W / 2 - ((x0 + x1) / 2) * s;
     const ty = H / 2 - ((y0 + y1) / 2) * s;
-    const t = "translate(" + tx.toFixed(2) + " " + ty.toFixed(2) + ") scale(" + sFinal.toFixed(5) + ")";
+    const t = "translate(" + tx.toFixed(2) + " " + ty.toFixed(2) + ") scale(" + s.toFixed(5) + ")";
     view.setAttribute("transform", t);
     landShape.setAttribute("transform", t);
     landMask.setAttribute("width", W.toFixed(2));
@@ -589,25 +654,11 @@ async function initHeroMap() {
       if (attempt.complete) { best = attempt; lo = mid; } else { hi = mid; }
     }
 
-    // Faded gold, justified to fill the continent. Pull from --insc-ink so it
-    // stays legible on both themes while reading as gold rather than off-white.
     const frag = document.createDocumentFragment();
     best.lines.forEach(line => {
-      const t = node("text", {
-        x: line.x.toFixed(1),
-        y: line.y.toFixed(1),
-        "font-size": best.size.toFixed(2),
-        fill: "var(--insc-ink)",
-        "text-anchor": "start",
-        "font-family": "\"Libre Baskerville\", Georgia, serif",
-        "font-weight": "400",
-        "letter-spacing": "0.01em"
-      });
-      // Justify every line (including the last) so the text fills the full
-      // width of the land on that row. We stretch spacing rather than
-      // stretching glyphs, capping the stretch so words never feel loose.
+      const t = node("text", { x: line.x.toFixed(1), y: line.y.toFixed(1), "font-size": best.size.toFixed(2) });
       const stretch = line.width ? line.avail / line.width : 9;
-      if (stretch > 1 && stretch <= 1.35) {
+      if (!line.end && stretch > 1 && stretch < 1.12) {
         t.setAttribute("textLength", line.avail.toFixed(1));
         t.setAttribute("lengthAdjust", "spacing");
       }
@@ -634,11 +685,9 @@ async function initHeroMap() {
     ring.style.opacity = (radius > 2 ? 0.55 * (1 - p) : 0).toFixed(3);
   }
 
-   function animateTo(on, x, y) {
+  function animateTo(on, x, y) {
     if (typeof x === "number" && typeof y === "number") { cx = x; cy = y; }
-    // Smaller ripple: reveal only part of the text, not the full span.
-    const maxRipple = Math.min(span, Math.hypot(W, H) * 0.28);
-    const to = on ? maxRipple : 0;
+    const to = on ? span : 0;
     const from = radius;
     const dur = reduced() ? 0 : (on ? 820 : 620);
     const start = performance.now();
@@ -654,7 +703,7 @@ async function initHeroMap() {
     paint();
     rafId = requestAnimationFrame(step);
   }
-  
+
   function localPoint(e) {
     const r = svg.getBoundingClientRect();
     return {
