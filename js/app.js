@@ -344,6 +344,7 @@ async function loadSvg(url) {
   }
   const node = document.importNode(svg, true);
   node.setAttribute("preserveAspectRatio", "xMinYMin meet");
+  node.setAttribute("viewBox", "181.27 690 360.46 236.41");
   node.setAttribute("width", "100%");
   node.setAttribute("height", "100%");
   node.classList.add("hero-svg");
