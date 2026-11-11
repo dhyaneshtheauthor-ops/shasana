@@ -138,151 +138,107 @@ header.site {
 .hero h2 { font-size: clamp(1.8rem, 5vw, 2.8rem); margin: 0 0 16px; color: var(--gold); }
 .search-wrap { max-width: 480px; width: 100%; margin: 12px auto; }
 
-/* ← Home hero — inscription map (v2) */
+/* ← Home hero — inscription map */
 .hero-v2 {
+  position: relative;
   display: grid;
-  grid-template-columns: 1fr minmax(0, 430px);
-  gap: 40px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: start;
-  margin: 24px -20px 48px;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  margin-top: -16px; /* cancels .wrap padding so the map meets the header */
+  margin-bottom: 48px;
+  min-height: calc(50vw * 429.23 / 360.46 - 16px);
 }
 .hero-copy {
-  padding: 8px 0 8px 20px;
+  grid-column: 1;
   min-width: 0;
+  position: relative;
+  z-index: 1;
+  padding: 24px 32px 8px max(20px, calc(50vw - 600px));
 }
 .hero-map {
-  position: relative;
-  width: min(100%, 470px);
-  height: clamp(380px, 104vw, 500px);
-  border-radius: 14px;
-  overflow: hidden;
-  background: var(--map-sea);
-  box-shadow: 0 18px 40px var(--shadow), 0 0 0 1px var(--border);
-  isolation: isolate;
-}
-.hero-map-frame {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  border-radius: 14px;
-}
-.hero-map-panel {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-.hero-map-svg {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
+  top: 0;
+  right: 0;
+  width: 50vw;
+  aspect-ratio: 360.46 / 429.23;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+  --rx: 50%;
+  --ry: 40%;
+  --rr: 0px;
 }
-.hero-map-art {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-.hero-insc-ta,
-.hero-insc-en {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-.hero-insc-ta {
-  color: var(--insc-ink);
-  font-family: "Noto Sans Tamil", "Noto Sans Grantha", "Noto Sans Brahmi", sans-serif;
-}
-.hero-insc-en {
-  color: var(--insc-en);
-  font-family: "Source Sans 3", sans-serif;
-  font-size: 13px;
-  letter-spacing: 0.01em;
-  clip-path: url(#heroRippleClip);
-}
-.hero-map-ring {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-.hero-map-ring svg {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  transform: translate(-50%, -50%);
-}
-.hero-map.is-live .hero-map-ring {
-  opacity: 1;
-}
-.hero-map-hint {
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0,0,0,0.55);
-  color: var(--insc-en);
-  font-size: 12px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  white-space: nowrap;
-  opacity: 1;
-  transition: opacity 0.4s ease;
-  pointer-events: none;
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255,255,255,0.08);
-}
-.hero-map.is-live .hero-map-hint {
-  opacity: 0;
-}
-.hero-map-cap {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--insc-ink);
-  opacity: 0.75;
-  background: rgba(0,0,0,0.25);
-  padding: 4px 10px;
-  border-radius: 4px;
-  backdrop-filter: blur(2px);
-}
-.hero-map.is-missing {
-  display: none;
-}
+.hero-map.is-missing { display: none; }
 .hero-v2:has(.hero-map.is-missing) {
-  grid-template-columns: minmax(0, 1fr);
+  display: block;
+  min-height: 0;
 }
-.hero-map-frame:focus-visible {
-  outline: 2px solid var(--gold);
-  outline-offset: 3px;
+.hero-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
+.hero-layer .hero-svg,
+.hero-pixel,
+.hero-pixel .hero-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.hero-pixel { width: 100%; height: 100%; }
+.hero-map-base path {
+  fill: var(--map-land);
+  stroke: var(--map-line);
+}
+.hero-text-ta text,
+.hero-text-en text { fill: var(--gold); }
+.hero-map.is-live .hero-text-ta {
+  -webkit-mask-image: radial-gradient(circle at var(--rx) var(--ry), transparent var(--rr), #000 calc(var(--rr) + 0.5px));
+  mask-image: radial-gradient(circle at var(--rx) var(--ry), transparent var(--rr), #000 calc(var(--rr) + 0.5px));
+}
+.hero-text-en { opacity: 0; }
+.hero-map.is-live .hero-text-en {
+  opacity: 1;
+  -webkit-mask-image: radial-gradient(circle at var(--rx) var(--ry), #000 var(--rr), transparent calc(var(--rr) + 0.5px));
+  mask-image: radial-gradient(circle at var(--rx) var(--ry), #000 var(--rr), transparent calc(var(--rr) + 0.5px));
+}
+.hero-ripple {
+  position: absolute;
+  left: var(--rx);
+  top: var(--ry);
+  width: calc(var(--rr) * 2);
+  height: calc(var(--rr) * 2);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  border: 1.5px solid color-mix(in srgb, var(--gold) 75%, transparent);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--gold) 16%, transparent);
+}
+.hero-ripple::after {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: inherit;
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+}
+.hero-map.is-live .hero-ripple { opacity: 1; }
 @media (max-width: 900px) {
-  .hero-v2 {
-    grid-template-columns: 1fr;
-    margin: 20px -20px 40px;
-  }
-  .hero-copy {
-    padding: 0 0 24px;
-  }
-  .hero-map {
-    width: min(100%, 470px);
-    height: clamp(360px, 104vw, 500px);
-  }
+  .hero-v2 { display: block; min-height: 0; margin-top: 8px; }
+  .hero-copy { padding: 0 20px 24px; }
+  .hero-map { position: relative; top: auto; right: auto; width: 100%; margin-top: 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero-map-hint,
-  .hero-map-ring { transition: none; }
+  .hero-ripple { transition: none; }
 }
 
 /* ← Scroll-reveal intro block (between header hero-map and the cards) */
@@ -292,6 +248,7 @@ header.site {
   margin: 0 auto;
   padding: 56px 0 32px;
   text-align: center;
+  grid-column: 1 / -1;
 }
 .hero-intro h3 {
   font-size: clamp(1.5rem, 3.5vw, 2.2rem);
@@ -327,18 +284,12 @@ header.site {
 
 /* map theme tokens */
 [data-theme="dark"] {
-  --map-sea: #241F19;
-  --map-land: #3B342B;
-  --map-line: rgba(201,154,59,0.42);
-  --insc-ink: #C99A3B;
-  --insc-en: #F2E9DA;
+  --map-land: #322E2A;
+  --map-line: #4A433C;
 }
 [data-theme="light"] {
-  --map-sea: #E7D8B2;
-  --map-land: #D4BE97;
-  --map-line: rgba(122,86,17,0.5);
-  --insc-ink: #7A5611;
-  --insc-en: #241D15;
+  --map-land: #E0D1A6;
+  --map-line: #CDB98A;
 }
 .search-wrap input {
   width: 100%; padding: 14px 18px; border-radius: 28px;
