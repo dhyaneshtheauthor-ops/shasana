@@ -397,6 +397,74 @@ function pixelLoad(host) {
   raf = requestAnimationFrame(frame);
   return () => { dead = true; cancelAnimationFrame(raf); };
 }
+const HERO_VB = { x: 181.27, y: 690, w: 360.46, h: 236.41 };
+
+function renderEnglishPlate(svg, w, h) {
+  const plate = document.createElement("canvas");
+  plate.width = w;
+  plate.height = h;
+  const ctx = plate.getContext("2d");
+  const sx = w / HERO_VB.w;
+  const sy = h / HERO_VB.h;
+  const text = svg.querySelector("text");
+  const fs = parseFloat((text && text.getAttribute("font-size")) || "6") * sx;
+  ctx.font = '400 ' + fs.toFixed(2) + 'px "Source Sans 3", sans-serif';
+  ctx.fillStyle = "#f3eadc";
+  ctx.textBaseline = "alphabetic";
+  svg.querySelectorAll("textPath").forEach(tp => {
+    const id = (tp.getAttribute("href") || "").slice(1);
+    const path = id && svg.getElementById(id);
+    const m = path && (path.getAttribute("d") || "").match(/M\s*([\d.]+)\s*,\s*([\d.]+)\s*L\s*([\d.]+)/);
+    if (!m) return;
+    const x0 = (parseFloat(m[1]) - HERO_VB.x) * sx;
+    const y0 = (parseFloat(m[2]) - HERO_VB.y) * sy;
+    const width = (parseFloat(tp.getAttribute("textLength")) || 0) * sx;
+    const chars = Array.from(tp.textContent || "");
+    if (!chars.length || !width) return;
+    const widths = chars.map(ch => ctx.measureText(ch).width);
+    const gap = chars.length > 1 ? (width - widths.reduce((a, b) => a + b, 0)) / (chars.length - 1) : 0;
+    let cx = x0;
+    chars.forEach((ch, i) => { ctx.fillText(ch, cx, y0); cx += widths[i] + gap; });
+  });
+  return plate;
+}
+
+function pixelateCanvas(src, block) {
+  const out = document.createElement("canvas");
+  out.width = src.width;
+  out.height = src.height;
+  const ctx = out.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  if (block <= 1) { ctx.drawImage(src, 0, 0); return out; }
+  const tw = Math.max(1, Math.round(src.width / block));
+  const th = Math.max(1, Math.round(src.height / block));
+  const tiny = document.createElement("canvas");
+  tiny.width = tw;
+  tiny.height = th;
+  const tctx = tiny.getContext("2d");
+  tctx.imageSmoothingEnabled = false;
+  tctx.drawImage(src, 0, 0, tw, th);
+  ctx.drawImage(tiny, 0, 0, tw, th, 0, 0, src.width, src.height);
+  return out;
+}
+
+function makeFiber(w, h) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d");
+  const img = ctx.createImageData(w, h);
+  const d = img.data;
+  for (let y = 0, i = 0; y < h; y++) {
+    for (let x = 0; x < w; x++, i += 4) {
+      const n = 120 + Math.sin(x * 0.37) * 16 + Math.sin(y * 0.91) * 16 + Math.random() * 48;
+      d[i] = d[i + 1] = d[i + 2] = n;
+      d[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return c;
+}
 
 async function initHeroMap() {
   const figure = document.getElementById("heroMap");
@@ -434,40 +502,118 @@ async function initHeroMap() {
   taWrap.className = "hero-layer hero-text-ta";
   taWrap.appendChild(pixel);
 
-  const enWrap = document.createElement("div");
-  enWrap.className = "hero-layer hero-text-en";
-  enWrap.appendChild(translated);
+const enWrap = document.createElement("div");
+enWrap.className = "hero-layer hero-text-en";
+enWrap.appendChild(translated);
 
-  const ring = document.createElement("span");
-  ring.className = "hero-ripple";
-  ring.setAttribute("aria-hidden", "true");
+const rubbing = document.createElement("canvas");
+rubbing.className = "hero-layer hero-rubbing";
+const pixels = document.createElement("canvas");
+pixels.className = "hero-layer hero-pixels";
+figure.replaceChildren(base, taWrap, enWrap, rubbing, pixels);
 
-  figure.replaceChildren(base, taWrap, enWrap, ring);
+let plate = null, bands = [], fiber = null;
+function rebuild() {
+  const w = Math.max(1, Math.round(figure.clientWidth));
+  const h = Math.max(1, Math.round(figure.clientHeight));
+  if (plate && rubbing.width === w && rubbing.height === h) return;
+  rubbing.width = pixels.width = w;
+  rubbing.height = pixels.height = h;
+  plate = renderEnglishPlate(translated, w, h);
+  bands = [1, 3, 6, 14].map(block => pixelateCanvas(plate, block));
+  fiber = makeFiber(w, h);
+}
+function drawReveal() {
+  rebuild();
+  const w = rubbing.width, h = rubbing.height;
+  const b = rubbing.getContext("2d");
+  const p = pixels.getContext("2d");
+  b.clearRect(0, 0, w, h);
+  p.clearRect(0, 0, w, h);
+  if (r < 1) return;
+  b.save();
+  b.beginPath();
+  b.arc(x, y, r, 0, Math.PI * 2);
+  b.clip();
+  b.fillStyle = "#e6dcc8";
+  b.fillRect(x - r, y - r, r * 2, r * 2);
+  const ink = b.createRadialGradient(x, y, r * 0.15, x, y, r);
+  ink.addColorStop(0, "rgba(16,14,12,0.94)");
+  ink.addColorStop(0.72, "rgba(22,18,15,0.9)");
+  ink.addColorStop(0.88, "rgba(230,220,200,0.5)");
+  ink.addColorStop(1, "rgba(230,220,200,0)");
+  b.fillStyle = ink;
+  b.fillRect(x - r, y - r, r * 2, r * 2);
+  b.globalCompositeOperation = "overlay";
+  b.globalAlpha = 0.55;
+  b.drawImage(fiber, 0, 0);
+  b.restore();
+  const dab = Math.max(5, Math.round(r * 0.055));
+  const steps = Math.max(28, Math.round((Math.PI * 2 * r) / dab));
+  for (let i = 0; i < steps; i++) {
+    const ang = (i / steps) * Math.PI * 2;
+    const n = Math.sin(i * 127.1) * 43758.5453;
+    const jitter = ((n - Math.floor(n)) - 0.5) * dab;
+    const rad = r - dab * 0.15 + jitter;
+    const inked = (n - Math.floor(n)) > 0.28;
+    b.fillStyle = inked ? "rgba(17,14,12,0.9)" : "rgba(230,220,200,0.45)";
+    b.fillRect(x + Math.cos(ang) * rad - dab / 2, y + Math.sin(ang) * rad - dab / 2, dab, dab);
+  }
+  const rings = [[0, 0.58, 0], [0.56, 0.76, 1], [0.74, 0.88, 2], [0.86, 0.96, 3]];
+  p.save();
+  p.beginPath();
+  p.arc(x, y, r, 0, Math.PI * 2);
+  p.clip();
+  rings.forEach(([inner, outer, idx]) => {
+    p.save();
+    p.beginPath();
+    p.arc(x, y, r * outer, 0, Math.PI * 2);
+    if (inner > 0) p.arc(x, y, r * inner, 0, Math.PI * 2, true);
+    p.clip("evenodd");
+    p.imageSmoothingEnabled = false;
+    p.drawImage(bands[idx], 0, 0);
+    p.restore();
+  });
+  p.restore();
+}
 
   const stopPixel = pixelLoad(pixel);
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const medium = () => Math.max(92, Math.min(156, Math.round(figure.clientWidth * 0.26)));
   let tx = 0, ty = 0, x = 0, y = 0, r = 0, tr = 0, raf = 0;
 
-  function paint() {
-    const k = reduced ? 1 : 0.35;
-    x += (tx - x) * k;
-    y += (ty - y) * k;
-    r += (tr - r) * (reduced ? 1 : 0.22);
-    figure.style.setProperty("--rx", x + "px");
-    figure.style.setProperty("--ry", y + "px");
-    figure.style.setProperty("--rr", r + "px");
-    if (!reduced && (Math.abs(tx - x) > 0.4 || Math.abs(ty - y) > 0.4 || Math.abs(tr - r) > 0.4)) {
-      raf = requestAnimationFrame(paint);
-      return;
-    }
-    x = tx; y = ty; r = tr;
-    figure.style.setProperty("--rx", x + "px");
-    figure.style.setProperty("--ry", y + "px");
-    figure.style.setProperty("--rr", r + "px");
-    if (r === 0) figure.classList.remove("is-live");
-    raf = 0;
+  const ro = new ResizeObserver(() => { plate = null; rebuild(); drawReveal(); });
+  ro.observe(figure);
+  if (document.fonts && document.fonts.load) {
+    document.fonts.load('16px "Source Sans 3"').then(() => {
+      if (!figure.isConnected) return;
+      plate = null;
+      rebuild();
+      drawReveal();
+    });
   }
+
+function paint() {
+  const k = reduced ? 1 : 0.35;
+  x += (tx - x) * k;
+  y += (ty - y) * k;
+  r += (tr - r) * (reduced ? 1 : 0.22);
+  figure.style.setProperty("--rx", x + "px");
+  figure.style.setProperty("--ry", y + "px");
+  figure.style.setProperty("--rr", r + "px");
+  drawReveal();
+  if (!reduced && (Math.abs(tx - x) > 0.4 || Math.abs(ty - y) > 0.4 || Math.abs(tr - r) > 0.4)) {
+    raf = requestAnimationFrame(paint);
+    return;
+  }
+  x = tx; y = ty; r = tr;
+  figure.style.setProperty("--rx", x + "px");
+  figure.style.setProperty("--ry", y + "px");
+  figure.style.setProperty("--rr", r + "px");
+  drawReveal();
+  if (r === 0) figure.classList.remove("is-live");
+  raf = 0;
+}
   function kick() {
     figure.classList.add("is-live");
     if (!raf) raf = requestAnimationFrame(paint);
@@ -501,6 +647,7 @@ async function initHeroMap() {
   figure.addEventListener("pointerdown", onDown);
 
   heroCleanup = () => {
+    ro.disconnect();
     stopPixel();
     cancelAnimationFrame(raf);
     figure.removeEventListener("pointerenter", onEnter);
