@@ -231,7 +231,8 @@ function renderHome() {
     probe.style.position = "absolute";
     probe.style.left = "0";
     probe.style.top = "0";
-    probe.style.width = h2.getBoundingClientRect().width + "px";
+    const column = h2.parentNode.getBoundingClientRect().width;
+    probe.style.width = Math.max(280, column - 80) + "px";
     probe.textContent = headline;
     h2.parentNode.appendChild(probe);
     h2.style.minHeight = Math.ceil(probe.getBoundingClientRect().height) + "px";
@@ -260,7 +261,8 @@ function renderHeroIntro() {
   intro.className = "hero-intro";
   intro.id = "heroIntro";
   intro.innerHTML = `<h3>${wordSpans}</h3>`;
-  heroMapFig.after(intro);
+  const hero = heroMapFig.closest(".hero-v2");
+  (hero || heroMapFig).after(intro);
 
   // Split into words and reveal word-by-word on scroll.
   const h3 = intro.querySelector("h3");
