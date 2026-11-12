@@ -1741,7 +1741,6 @@ function renderMap() {
   });
 
   // Auto-show tour for new visitors
-  if (!localStorage.getItem("shasana-map-tour-done")) {
     setTimeout(() => {
       showTourCard(
         "Welcome to the map",
