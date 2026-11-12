@@ -505,6 +505,8 @@ async function initHeroMap() {
 const enWrap = document.createElement("div");
 enWrap.className = "hero-layer hero-text-en";
 enWrap.appendChild(translated);
+enWrap.style.opacity = "0";
+enWrap.style.visibility = "hidden";
 
 const pixels = document.createElement("canvas");
 pixels.className = "hero-layer hero-pixels";
@@ -582,13 +584,13 @@ function drawReveal() {
       drawReveal();
     });
   }
-function stopLinger() {
+function armLinger() {
   clearTimeout(lingerTimer);
-  lingerTimer = 0;
   cancelAnimationFrame(dissolveRaf);
   dissolveRaf = 0;
   dissolve = 0;
   figure.style.setProperty("--ring-a", "1");
+  lingerTimer = setTimeout(startDissolve, 10000);
 }
 function startDissolve() {
   const t0 = performance.now();
@@ -643,19 +645,18 @@ function paint() {
     ty = e.clientY - b.top;
   }
   const onEnter = e => {
-  if (e.pointerType === "touch") return;
-  stopLinger();
-  aim(e); x = tx; y = ty; tr = medium(); kick();
+    if (e.pointerType === "touch") return;
+    aim(e); x = tx; y = ty; tr = medium(); kick();
+    armLinger();
   };
   const onMove = e => {
     if (e.pointerType === "touch") return;
-    stopLinger();
     aim(e); tr = medium(); kick();
+    armLinger();
   };
   const onLeave = e => {
     if (e.pointerType === "touch") return;
-    clearTimeout(lingerTimer);
-    lingerTimer = setTimeout(startDissolve, 10000);
+    armLinger();
   };
   const onDown = e => {
     if (e.pointerType === "mouse") return;
