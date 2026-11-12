@@ -156,14 +156,18 @@ header.site {
   height: 100%;
   min-width: 0;
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   justify-content: center;
+  align-items: flex-start;
   text-align: left;
-  padding: 12px 36px 12px max(24px, calc(50vw - 600px));
+  gap: 14px;
+  padding: 20px 32px 20px max(24px, calc(50vw - 600px));
 }
+.hero-copy > * { margin: 0; flex: 0 0 auto; }
+.hero-copy h2 { font-size: clamp(1.7rem, 3vw, 2.35rem); line-height: 1.25; max-width: 16ch; }
+.hero-lede { max-width: 34rem; }
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
