@@ -929,3 +929,73 @@ details summary::-webkit-details-marker { display: none; }
 }
 .dyn-card .meta { font-size: .72rem; color: var(--gold); margin-top: 6px; font-weight: 600; }
 .dyn-card.sub { border-style: dashed; opacity: 0.92; }
+
+/* Map tour overlay */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+[data-theme="light"] .tour-overlay { background: rgba(42, 33, 24, 0.45); }
+
+.tour-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 12px 40px var(--shadow);
+  color: var(--text);
+  position: relative;
+}
+.tour-card h3 {
+  margin: 0 0 12px;
+  font-size: 1.35rem;
+  color: var(--gold);
+}
+.tour-card p { margin: 0 0 20px; line-height: 1.55; }
+.tour-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.tour-actions button {
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+}
+.tour-btn-primary {
+  background: var(--gold);
+  color: #1C1A18;
+  border-color: var(--gold);
+}
+.tour-btn-secondary {
+  background: transparent;
+  color: var(--text);
+}
+
+/* Highlight ring for tour steps */
+.tour-highlight {
+  position: relative;
+  z-index: 1001;
+  outline: 3px solid var(--gold);
+  outline-offset: 4px;
+  border-radius: 12px;
+  box-shadow: 0 0 0 6px rgba(201, 154, 59, 0.35);
+  transition: outline 0.2s, box-shadow 0.2s;
+}
+.tour-highlight-pulse {
+  animation: tour-pulse 1.4s ease-in-out infinite;
+}
+@keyframes tour-pulse {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(201, 154, 59, 0.35); }
+  50% { box-shadow: 0 0 0 10px rgba(201, 154, 59, 0.15); }
+}
