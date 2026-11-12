@@ -231,7 +231,7 @@ header.site {
   stroke: var(--map-line);
 }
 .hero-text-ta text { fill: var(--gold); }
-[data-theme="light"] .hero-text-ta text { fill: #1A1612; }
+[data-theme="light"] .hero-text-ta text { fill: #97742C; }
 .hero-text-en { opacity: 0; visibility: hidden; }
 .hero-map.is-live .hero-text-ta {
   -webkit-mask-image: radial-gradient(circle at var(--rx) var(--ry), transparent var(--rr), #000 calc(var(--rr) + 0.5px));
