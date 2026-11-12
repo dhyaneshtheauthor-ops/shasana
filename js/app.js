@@ -104,19 +104,19 @@ function typewriter(id, text) {
   const el = document.getElementById(id);
   if (!el) return;
   const words = text.split(/\s+/).filter(Boolean);
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    el.textContent = words.join(" ");
-    return;
-  }
-  el.textContent = "";
-  let i = 0;
-  const step = () => {
-    if (i >= words.length) return;
-    el.textContent += (i ? " " : "") + words[i];
-    i++;
-    setTimeout(step, 140);
-  };
-  step();
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  el.replaceChildren();
+  words.forEach((word, i) => {
+    if (i) el.appendChild(document.createTextNode(" "));
+    const s = document.createElement("span");
+    s.className = "hero-word";
+    s.textContent = word;
+    s.style.transitionDelay = (i * 120) + "ms";
+    el.appendChild(s);
+  });
+  const show = () => el.querySelectorAll(".hero-word").forEach(s => s.classList.add("is-in"));
+  if (reduce) show();
+  else requestAnimationFrame(show);
 }
 
 /* Theme */
@@ -411,7 +411,8 @@ function renderEnglishPlate(svg, w, h) {
     if (!m) return;
     const x0 = (parseFloat(m[1]) - HERO_VB.x) * scale;
     const y0 = (parseFloat(m[2]) - HERO_VB.y) * scale;
-    const width = (parseFloat(tp.getAttribute("textLength")) || 0) * scale;
+    let width = (parseFloat(tp.getAttribute("textLength")) || 0) * scale;
+    if (!width) width = (parseFloat(m[3]) - parseFloat(m[1])) * scale;
     const chars = Array.from(tp.textContent || "");
     if (!chars.length || !width) return;
     const widths = chars.map(ch => ctx.measureText(ch).width);
