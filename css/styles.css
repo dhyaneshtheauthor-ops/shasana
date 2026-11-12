@@ -190,6 +190,34 @@ header.site {
   justify-content: flex-start;
   gap: 12px;
 }
+.hero-eyebrow,
+.hero-lede,
+.hero-actions,
+.hero-counts,
+.section-title {
+  opacity: 0;
+  animation: hero-block-in .6s ease forwards;
+}
+.hero-eyebrow { animation-delay: .1s; }
+.hero-lede { animation-delay: .9s; }
+.hero-actions { animation-delay: 1.05s; }
+.hero-counts { animation-delay: 1.2s; }
+.section-title { animation-name: body-fade; animation-duration: .8s; animation-delay: .15s; }
+@keyframes hero-block-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes body-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-eyebrow, .hero-lede, .hero-actions, .hero-counts, .section-title {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
 .hero-map {
   position: absolute;
   top: 0;
