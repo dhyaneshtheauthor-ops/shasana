@@ -104,19 +104,15 @@ function typewriter(id, text) {
   const el = document.getElementById(id);
   if (!el) return;
   const words = text.split(/\s+/).filter(Boolean);
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   el.replaceChildren();
   words.forEach((word, i) => {
     if (i) el.appendChild(document.createTextNode(" "));
     const s = document.createElement("span");
     s.className = "hero-word";
     s.textContent = word;
-    s.style.transitionDelay = (i * 120) + "ms";
+    s.style.animationDelay = (i * 140) + "ms";
     el.appendChild(s);
   });
-  const show = () => el.querySelectorAll(".hero-word").forEach(s => s.classList.add("is-in"));
-  if (reduce) show();
-  else requestAnimationFrame(show);
 }
 
 /* Theme */
@@ -411,12 +407,14 @@ function renderEnglishPlate(svg, w, h) {
     if (!m) return;
     const x0 = (parseFloat(m[1]) - HERO_VB.x) * scale;
     const y0 = (parseFloat(m[2]) - HERO_VB.y) * scale;
-    let width = (parseFloat(tp.getAttribute("textLength")) || 0) * scale;
-    if (!width) width = (parseFloat(m[3]) - parseFloat(m[1])) * scale;
-    const chars = Array.from(tp.textContent || "");
-    if (!chars.length || !width) return;
+    const specified = tp.getAttribute("textLength");
+    const chars = Array.from((tp.textContent || "").trim());
+    if (!chars.length) return;
     const widths = chars.map(ch => ctx.measureText(ch).width);
-    const gap = chars.length > 1 ? (width - widths.reduce((a, b) => a + b, 0)) / (chars.length - 1) : 0;
+    const natural = widths.reduce((a, b) => a + b, 0);
+    const width = specified ? parseFloat(specified) * scale : natural;
+    if (!width) return;
+    const gap = chars.length > 1 ? (width - natural) / (chars.length - 1) : 0;
     let cx = x0;
     chars.forEach((ch, i) => { ctx.fillText(ch, cx, y0); cx += widths[i] + gap; });
   });
