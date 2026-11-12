@@ -164,7 +164,7 @@ function renderHome() {
       <div class="hero-copy">
         <p class="hero-eyebrow">Tamil Nadu · Chola &amp; Pandya records</p>
         <h2 id="heroText"></h2>
-        <p class="hero-lede">Search temples, kings and dynasties across Tamil Nadu. Open any pin to see the temple and the king behind it.</p>
+        <p class="hero-lede">Search temples, kings, and dynasties across Tamil Nadu. Open any pin to see the temple and the inscriptions in it.</p>
         <div class="hero-actions">
           <a href="#/map" class="btn">Open the interactive map <span aria-hidden="true">→</span></a>
           <a href="#/search" class="btn btn-ghost">Search the corpus</a>
@@ -183,11 +183,11 @@ function renderHome() {
     </div>
 
     <section style="padding:40px 0">
-      <h3 class="section-title">Find the record, the temple and the king together</h3>
+      <h3 class="section-title">Find the record, the temple, and the king together</h3>
       <div class="grid" style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
-        <div class="card" style="padding:24px"><h3 style="margin:0 0 8px">Find any temple fast</h3><p class="muted">Click a pin to see its king and period.</p></div>
+        <div class="card" style="padding:24px"><h3 style="margin:0 0 8px">Find any temple fast</h3><p class="muted">Click a pin to see the temple's history and inscriptions.</p></div>
         <div class="card" style="padding:24px"><h3 style="margin:0 0 8px">Trace a dynasty</h3><p class="muted">Chola and Pandya lists sit side by side, so you can compare reigns.</p></div>
-        <div class="card" style="padding:24px"><h3 style="margin:0 0 8px">Know the king behind the record</h3><p class="muted">Each ruler page links to the temples tied to that king.</p></div>
+        <div class="card" style="padding:24px"><h3 style="margin:0 0 8px">Know the king behind the record</h3><p class="muted">Each ruler page links to the inscriptions tied to that king.</p></div>
         <div class="card" style="padding:24px"><h3 style="margin:0 0 8px">Browse by place</h3><p class="muted">Start from a district or a temple town you already know.</p></div>
       </div>
     </section>
@@ -197,7 +197,7 @@ function renderHome() {
       <div class="grid" style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
         <div class="card" style="padding:24px"><span class="muted" style="font-size:.8rem;font-weight:600">STEP 1</span><h3 style="margin:8px 0">Open the map</h3><p class="muted">Pick a region or search a temple name.</p></div>
         <div class="card" style="padding:24px"><span class="muted" style="font-size:.8rem;font-weight:600">STEP 2</span><h3 style="margin:8px 0">Choose a temple or a king</h3><p class="muted">Details open beside the map.</p></div>
-        <div class="card" style="padding:24px"><span class="muted" style="font-size:.8rem;font-weight:600">STEP 3</span><h3 style="margin:8px 0">Follow the links</h3><p class="muted">Jump to related temples, rulers and dynastic lists.</p></div>
+        <div class="card" style="padding:24px"><span class="muted" style="font-size:.8rem;font-weight:600">STEP 3</span><h3 style="margin:8px 0">Follow the links</h3><p class="muted">Jump to related temples, rulers, and inscriptions.</p></div>
       </div>
     </section>
 
