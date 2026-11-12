@@ -398,7 +398,7 @@ function renderEnglishPlate(svg, w, h) {
   const text = svg.querySelector("text");
   const fs = parseFloat((text && text.getAttribute("font-size")) || "6") * scale;
   ctx.font = '400 ' + fs.toFixed(2) + 'px "Source Sans 3", sans-serif';
-  ctx.fillStyle = "#C99A3B";
+  ctx.fillStyle = document.documentElement.getAttribute("data-theme") === "light" ? "#1A1612" : "#C99A3B";
   ctx.textBaseline = "alphabetic";
   svg.querySelectorAll("textPath").forEach(tp => {
     const id = (tp.getAttribute("href") || "").slice(1);
@@ -508,6 +508,8 @@ ring.setAttribute("aria-hidden", "true");
 figure.replaceChildren(base, taWrap, enWrap, pixels, ring);
 
 let plate = null, bands = [];
+  new MutationObserver(() => { plate = null; rebuild(); drawReveal(); })
+  .observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 function rebuild() {
   const w = Math.max(1, Math.round(figure.clientWidth));
   const h = Math.max(1, Math.round(figure.clientHeight));
