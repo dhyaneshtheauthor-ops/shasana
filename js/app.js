@@ -1700,14 +1700,8 @@ function renderMap() {
   const timeline = `<button class="tl-dot" data-cen="" title="All">All</button>` + centuries.map(c => {
     const label = c.replace("th century", "00s").replace("st century", "00s");
     return `<button class="tl-dot" data-cen="${escapeHtml(c)}" title="${escapeHtml(c)}">${label}</button>`;
-  const params = new URLSearchParams(location.hash.split("?")[1] || "");
-  const kingParam = params.get("king");
-  if (kingParam && DATA.kings.some(k => k.king_id === kingParam)) {
-    currentFilters.king = kingParam;
-    document.getElementById("mapKing").value = kingParam;
-    setTimeout(() => { refreshMarkers(); }, 100);
-  }
   }).join("");
+
   $app().innerHTML = `
     <div class="map-page">
       <div id="map"></div>
@@ -1724,8 +1718,8 @@ function renderMap() {
       <div id="pinCard" class="pin-card" style="display:none"></div>
       <div class="timeline-bar" id="timelineBar">${timeline}</div>
     </div>
-    `;
-  initFullMap();
+  `;
+   initFullMap();
   document.getElementById("mapSearch").addEventListener("input", onSearchInput);
   document.getElementById("mapDynasty").addEventListener("change", applyFilters);
   document.getElementById("mapKing").addEventListener("change", applyFilters);
@@ -1740,18 +1734,17 @@ function renderMap() {
     });
   });
 
-  // Auto-show tour for new visitors
-    setTimeout(() => {
-      showTourCard(
-        "Welcome to the map",
-        "This interactive map lets you browse temples, kings, and inscriptions across Tamil Nadu. Take a quick tour or jump straight in.",
-        "Take the tour",
-        startMapTour,
-        "Skip",
-        hideTour
-      );
-    }, 400);
-  }
+  // Auto-show tour
+  setTimeout(() => {
+    showTourCard(
+      "Welcome to the map",
+      "This interactive map lets you browse temples, kings, and inscriptions across Tamil Nadu. Take a quick tour or jump straight in.",
+      "Take the tour",
+      startMapTour,
+      "Skip",
+      hideTour
+    );
+  }, 400);
 }
 
 function onSearchInput(e) {
