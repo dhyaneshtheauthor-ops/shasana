@@ -41,7 +41,7 @@ body::before {
 h1, h2, h3, .serif { font-family: "Libre Baskerville", "Noto Serif Tamil", Georgia, serif; }
 a { color: var(--kumkum-text); text-decoration: none; }
 a:hover { text-decoration: underline; }
-[data-theme="light"] a { color: var(--kumkum); }
+[data-theme="light"] a:not(.btn) { color: var(--kumkum); }
 
 /* Header */
 header.site {
@@ -673,7 +673,6 @@ body {
   border-radius: 8px;
   background: var(--gold);
   color: #1C1A18;
-  [data-theme="light"] a.btn { color: #1C1A18; }
   font-weight: 600;
   transition: transform .3s var(--ease), opacity .3s;
 }
