@@ -1737,7 +1737,10 @@ function renderMap() {
       document.getElementById("mapCentury").value = btn.dataset.cen || "";
       document.querySelectorAll(".tl-dot").forEach(b => b.classList.toggle("active", b === btn));
       refreshMarkers();
-    // Auto-show tour for new visitors
+    });
+  });
+
+  // Auto-show tour for new visitors
   if (!localStorage.getItem("shasana-map-tour-done")) {
     setTimeout(() => {
       showTourCard(
