@@ -173,7 +173,6 @@ function renderHome() {
       </div>
 
       <figure class="hero-map" id="heroMap" aria-label="Tamil country. Gold inscription. Move the cursor to read the English."></figure>
-      </figure>
     </section>
 
     <div class="stats">
@@ -404,10 +403,9 @@ function renderEnglishPlate(svg, w, h) {
   plate.width = w;
   plate.height = h;
   const ctx = plate.getContext("2d");
-  const sx = w / HERO_VB.w;
-  const sy = h / HERO_VB.h;
+  const scale = Math.min(w / HERO_VB.w, h / HERO_VB.h);
   const text = svg.querySelector("text");
-  const fs = parseFloat((text && text.getAttribute("font-size")) || "6") * sx;
+  const fs = parseFloat((text && text.getAttribute("font-size")) || "6") * scale;
   ctx.font = '400 ' + fs.toFixed(2) + 'px "Source Sans 3", sans-serif';
   ctx.fillStyle = "#C99A3B";
   ctx.textBaseline = "alphabetic";
@@ -416,9 +414,9 @@ function renderEnglishPlate(svg, w, h) {
     const path = id && svg.getElementById(id);
     const m = path && (path.getAttribute("d") || "").match(/M\s*([\d.]+)\s*,\s*([\d.]+)\s*L\s*([\d.]+)/);
     if (!m) return;
-    const x0 = (parseFloat(m[1]) - HERO_VB.x) * sx;
-    const y0 = (parseFloat(m[2]) - HERO_VB.y) * sy;
-    const width = (parseFloat(tp.getAttribute("textLength")) || 0) * sx;
+    const x0 = (parseFloat(m[1]) - HERO_VB.x) * scale;
+    const y0 = (parseFloat(m[2]) - HERO_VB.y) * scale;
+    const width = (parseFloat(tp.getAttribute("textLength")) || 0) * scale;
     const chars = Array.from(tp.textContent || "");
     if (!chars.length || !width) return;
     const widths = chars.map(ch => ctx.measureText(ch).width);
