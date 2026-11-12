@@ -1501,19 +1501,29 @@ function resetMapState() {
   const king = document.getElementById("mapKing");
   const cen = document.getElementById("mapCentury");
   const year = document.getElementById("mapYear");
-  if (search) search.value = "";
+  const suggest = document.getElementById("searchSuggest");
+
+  if (search) {
+    search.value = "";
+    search.dispatchEvent(new Event("input", { bubbles: true })); // clears any pending state
+  }
+  if (suggest) suggest.style.display = "none";
   if (dyn) dyn.value = "";
   if (king) king.value = "";
   if (cen) cen.value = "";
   if (year) year.value = "";
+
   document.querySelectorAll(".tl-dot").forEach(b => b.classList.remove("active"));
   const allBtn = document.querySelector('.tl-dot[data-cen=""]');
   if (allBtn) allBtn.classList.add("active");
+
   const pin = document.getElementById("pinCard");
   if (pin) pin.style.display = "none";
+
   document.querySelectorAll(".tour-highlight").forEach(el => {
     el.classList.remove("tour-highlight", "tour-highlight-pulse");
   });
+
   if (typeof refreshMarkers === "function") refreshMarkers();
 }
 
@@ -1729,6 +1739,7 @@ function renderMap() {
       currentFilters.cen = btn.dataset.cen || "";
       document.getElementById("mapCentury").value = btn.dataset.cen || "";
       document.querySelectorAll(".tl-dot").forEach(b => b.classList.toggle("active", b === btn));
+      applyUrlFilters();
       refreshMarkers();
     });
   });
@@ -1761,6 +1772,45 @@ function onSearchInput(e) {
   document.getElementById("mapYear").value = "";
   showSuggestions(q);
   refreshMarkers();
+}
+function updateMapUrl() {
+  const params = new URLSearchParams();
+  if (currentFilters.q) params.set("q", currentFilters.q);
+  if (currentFilters.dyn) params.set("dyn", currentFilters.dyn);
+  if (currentFilters.king) params.set("king", currentFilters.king);
+  if (currentFilters.cen) params.set("cen", currentFilters.cen);
+  if (currentFilters.year) params.set("year", currentFilters.year);
+
+  const qs = params.toString();
+  const newHash = qs ? `#/map?${qs}` : "#/map";
+  if (location.hash !== newHash) {
+    history.replaceState(null, "", newHash);
+  }
+}
+
+function applyUrlFilters() {
+  const params = new URLSearchParams(location.hash.split("?")[1] || "");
+  currentFilters.q = params.get("q") || "";
+  currentFilters.dyn = params.get("dyn") || "";
+  currentFilters.king = params.get("king") || "";
+  currentFilters.cen = params.get("cen") || "";
+  currentFilters.year = params.get("year") || "";
+
+  const search = document.getElementById("mapSearch");
+  const dyn = document.getElementById("mapDynasty");
+  const king = document.getElementById("mapKing");
+  const cen = document.getElementById("mapCentury");
+  const year = document.getElementById("mapYear");
+
+  if (search) search.value = currentFilters.q;
+  if (dyn) dyn.value = currentFilters.dyn;
+  if (king) king.value = currentFilters.king;
+  if (cen) cen.value = currentFilters.cen;
+  if (year) year.value = currentFilters.year;
+
+  document.querySelectorAll(".tl-dot").forEach(b => {
+    b.classList.toggle("active", b.dataset.cen === currentFilters.cen);
+  });
 }
 
 function showSuggestions(q) {
@@ -1829,6 +1879,7 @@ function applyFilters() {
   currentFilters.year = document.getElementById("mapYear").value;
   document.querySelectorAll(".tl-dot").forEach(b => b.classList.toggle("active", b.dataset.cen === currentFilters.cen));
   refreshMarkers();
+  updateMapUrl();         
 }
 
 function initMiniMap() {
