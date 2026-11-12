@@ -999,3 +999,16 @@ details summary::-webkit-details-marker { display: none; }
   0%, 100% { box-shadow: 0 0 0 6px rgba(201, 154, 59, 0.35); }
   50% { box-shadow: 0 0 0 10px rgba(201, 154, 59, 0.15); }
 }
+.tour-overlay.tour-centered {
+  background: rgba(0, 0, 0, 0.55);
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
+}
+[data-theme="light"] .tour-overlay.tour-centered {
+  background: rgba(42, 33, 24, 0.5);
+}
+.tour-overlay.tour-centered .tour-card {
+  margin-left: 0;
+  max-width: 420px;
+}
