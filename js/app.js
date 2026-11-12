@@ -409,7 +409,7 @@ function renderEnglishPlate(svg, w, h) {
   const text = svg.querySelector("text");
   const fs = parseFloat((text && text.getAttribute("font-size")) || "6") * sx;
   ctx.font = '400 ' + fs.toFixed(2) + 'px "Source Sans 3", sans-serif';
-  ctx.fillStyle = "#f3eadc";
+  ctx.fillStyle = "#C99A3B";
   ctx.textBaseline = "alphabetic";
   svg.querySelectorAll("textPath").forEach(tp => {
     const id = (tp.getAttribute("href") || "").slice(1);
@@ -506,65 +506,43 @@ const enWrap = document.createElement("div");
 enWrap.className = "hero-layer hero-text-en";
 enWrap.appendChild(translated);
 
-const rubbing = document.createElement("canvas");
-rubbing.className = "hero-layer hero-rubbing";
 const pixels = document.createElement("canvas");
 pixels.className = "hero-layer hero-pixels";
-figure.replaceChildren(base, taWrap, enWrap, rubbing, pixels);
+const ring = document.createElement("span");
+ring.className = "hero-ripple";
+ring.setAttribute("aria-hidden", "true");
+figure.replaceChildren(base, taWrap, enWrap, pixels, ring);
 
-let plate = null, bands = [], fiber = null;
+let plate = null, bands = [];
 function rebuild() {
   const w = Math.max(1, Math.round(figure.clientWidth));
   const h = Math.max(1, Math.round(figure.clientHeight));
-  if (plate && rubbing.width === w && rubbing.height === h) return;
-  rubbing.width = pixels.width = w;
-  rubbing.height = pixels.height = h;
+  if (plate && pixels.width === w && pixels.height === h) return;
+  pixels.width = w;
+  pixels.height = h;
   plate = renderEnglishPlate(translated, w, h);
   bands = [1, 3, 6, 14].map(block => pixelateCanvas(plate, block));
-  fiber = makeFiber(w, h);
 }
 function drawReveal() {
   rebuild();
-  const w = rubbing.width, h = rubbing.height;
-  const b = rubbing.getContext("2d");
+  const w = pixels.width, h = pixels.height;
   const p = pixels.getContext("2d");
-  b.clearRect(0, 0, w, h);
   p.clearRect(0, 0, w, h);
-  if (r < 1) return;
-  b.save();
-  b.beginPath();
-  b.arc(x, y, r, 0, Math.PI * 2);
-  b.clip();
-  b.fillStyle = "#e6dcc8";
-  b.fillRect(x - r, y - r, r * 2, r * 2);
-  const ink = b.createRadialGradient(x, y, r * 0.15, x, y, r);
-  ink.addColorStop(0, "rgba(16,14,12,0.94)");
-  ink.addColorStop(0.72, "rgba(22,18,15,0.9)");
-  ink.addColorStop(0.88, "rgba(230,220,200,0.5)");
-  ink.addColorStop(1, "rgba(230,220,200,0)");
-  b.fillStyle = ink;
-  b.fillRect(x - r, y - r, r * 2, r * 2);
-  b.globalCompositeOperation = "overlay";
-  b.globalAlpha = 0.55;
-  b.drawImage(fiber, 0, 0);
-  b.restore();
-  const dab = Math.max(5, Math.round(r * 0.055));
-  const steps = Math.max(28, Math.round((Math.PI * 2 * r) / dab));
-  for (let i = 0; i < steps; i++) {
-    const ang = (i / steps) * Math.PI * 2;
-    const n = Math.sin(i * 127.1) * 43758.5453;
-    const jitter = ((n - Math.floor(n)) - 0.5) * dab;
-    const rad = r - dab * 0.15 + jitter;
-    const inked = (n - Math.floor(n)) > 0.28;
-    b.fillStyle = inked ? "rgba(17,14,12,0.9)" : "rgba(230,220,200,0.45)";
-    b.fillRect(x + Math.cos(ang) * rad - dab / 2, y + Math.sin(ang) * rad - dab / 2, dab, dab);
-  }
-  const rings = [[0, 0.58, 0], [0.56, 0.76, 1], [0.74, 0.88, 2], [0.86, 0.96, 3]];
+  if (r < 1 || !bands.length) return;
+  const d = dissolve;
+  const rings = [
+    [0, 0.58 * (1 - d), 0],
+    [0.56 * (1 - d), 0.76 * (1 - d) + 0.24 * d, 1],
+    [0.74 * (1 - d), 0.88 * (1 - d) + 0.5 * d, 2],
+    [0.86 * (1 - d), 1, 3]
+  ];
   p.save();
   p.beginPath();
   p.arc(x, y, r, 0, Math.PI * 2);
   p.clip();
-  rings.forEach(([inner, outer, idx]) => {
+  rings.forEach(function (ringBand) {
+    const inner = ringBand[0], outer = ringBand[1], idx = ringBand[2];
+    if (outer <= inner) return;
     p.save();
     p.beginPath();
     p.arc(x, y, r * outer, 0, Math.PI * 2);
@@ -574,6 +552,17 @@ function drawReveal() {
     p.drawImage(bands[idx], 0, 0);
     p.restore();
   });
+  if (d > 0.15) {
+    p.globalCompositeOperation = "destination-out";
+    const block = 14;
+    const keep = 1 - d;
+    for (let py = y - r; py < y + r; py += block) {
+      for (let px = x - r; px < x + r; px += block) {
+        const n = Math.sin(px * 12.9898 + py * 78.233) * 43758.5453;
+        if ((n - Math.floor(n)) > keep) p.fillRect(px, py, block, block);
+      }
+    }
+  }
   p.restore();
 }
 
@@ -581,6 +570,7 @@ function drawReveal() {
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const medium = () => Math.max(92, Math.min(156, Math.round(figure.clientWidth * 0.26)));
   let tx = 0, ty = 0, x = 0, y = 0, r = 0, tr = 0, raf = 0;
+  let lingerTimer = 0, dissolveRaf = 0, dissolve = 0;
 
   const ro = new ResizeObserver(() => { plate = null; rebuild(); drawReveal(); });
   ro.observe(figure);
@@ -592,7 +582,36 @@ function drawReveal() {
       drawReveal();
     });
   }
-
+function stopLinger() {
+  clearTimeout(lingerTimer);
+  lingerTimer = 0;
+  cancelAnimationFrame(dissolveRaf);
+  dissolveRaf = 0;
+  dissolve = 0;
+  figure.style.setProperty("--ring-a", "1");
+}
+function startDissolve() {
+  const t0 = performance.now();
+  const dur = reduced ? 0 : 1000;
+  const step = now => {
+    dissolve = dur ? Math.min(1, (now - t0) / dur) : 1;
+    figure.style.setProperty("--ring-a", String(1 - dissolve));
+    drawReveal();
+    if (dissolve < 1) dissolveRaf = requestAnimationFrame(step);
+    else {
+      tr = 0;
+      r = 0;
+      dissolve = 0;
+      figure.style.setProperty("--rr", "0px");
+      figure.style.setProperty("--ring-a", "1");
+      figure.classList.remove("is-live");
+      drawReveal();
+    }
+  };
+  cancelAnimationFrame(dissolveRaf);
+  dissolveRaf = requestAnimationFrame(step);
+}
+  
 function paint() {
   const k = reduced ? 1 : 0.35;
   x += (tx - x) * k;
@@ -624,29 +643,40 @@ function paint() {
     ty = e.clientY - b.top;
   }
   const onEnter = e => {
-    if (e.pointerType === "touch") return;
-    aim(e); x = tx; y = ty; tr = medium(); kick();
+  if (e.pointerType === "touch") return;
+  stopLinger();
+  aim(e); x = tx; y = ty; tr = medium(); kick();
   };
   const onMove = e => {
     if (e.pointerType === "touch") return;
+    stopLinger();
     aim(e); tr = medium(); kick();
   };
   const onLeave = e => {
     if (e.pointerType === "touch") return;
-    tr = 0; kick();
+    clearTimeout(lingerTimer);
+    lingerTimer = setTimeout(startDissolve, 10000);
   };
   const onDown = e => {
     if (e.pointerType === "mouse") return;
-    aim(e); x = tx; y = ty;
-    tr = tr > 0 ? 0 : medium();
-    kick();
+    stopLinger();
+    aim(e); x = tx; y = ty; tr = medium(); kick();
+  };
+  const onUp = e => {
+    if (e.pointerType === "mouse") return;
+    clearTimeout(lingerTimer);
+    lingerTimer = setTimeout(startDissolve, 10000);
   };
   figure.addEventListener("pointerenter", onEnter);
   figure.addEventListener("pointermove", onMove);
   figure.addEventListener("pointerleave", onLeave);
   figure.addEventListener("pointerdown", onDown);
+  figure.addEventListener("pointerup", onUp);
+  figure.addEventListener("pointercancel", onUp);
 
   heroCleanup = () => {
+    clearTimeout(lingerTimer);
+    cancelAnimationFrame(dissolveRaf);
     ro.disconnect();
     stopPixel();
     cancelAnimationFrame(raf);
@@ -654,6 +684,8 @@ function paint() {
     figure.removeEventListener("pointermove", onMove);
     figure.removeEventListener("pointerleave", onLeave);
     figure.removeEventListener("pointerdown", onDown);
+    figure.removeEventListener("pointerup", onUp);
+    figure.removeEventListener("pointercancel", onUp);
     figure.classList.remove("is-live");
   };
 }
