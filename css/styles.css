@@ -143,7 +143,7 @@ header.site {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: start;
+  align-items: stretch;
   width: 100vw;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
@@ -156,7 +156,18 @@ header.site {
   min-width: 0;
   position: relative;
   z-index: 1;
-  padding: 24px 32px 8px max(20px, calc(50vw - 600px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 22vh 8vw 6vh;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
 }
 .hero-map {
   position: absolute;
@@ -228,8 +239,11 @@ header.site {
 .hero-map.is-live .hero-ripple { opacity: var(--ring-a, 1); }
 @media (max-width: 900px) {
   .hero-v2 { display: block; min-height: 0; margin-top: 8px; }
-  .hero-copy { padding: 0 20px 24px; }
-  .hero-map { position: relative; top: auto; right: auto; width: 100%; margin-top: 8px; }
+  .hero-copy {
+    display: block;
+    text-align: left;
+    padding: 36px 20px 24px;
+}  .hero-map { position: relative; top: auto; right: auto; width: 100%; margin-top: 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-ripple { transition: none; }
