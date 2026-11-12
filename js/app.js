@@ -103,14 +103,18 @@ function placeholder(letter) {
 function typewriter(id, text) {
   const el = document.getElementById(id);
   if (!el) return;
-  let i = 0;
+  const words = text.split(/\s+/).filter(Boolean);
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    el.textContent = words.join(" ");
+    return;
+  }
   el.textContent = "";
+  let i = 0;
   const step = () => {
-    if (i <= text.length) {
-      el.textContent = text.slice(0, i);
-      i++;
-      setTimeout(step, 45);
-    }
+    if (i >= words.length) return;
+    el.textContent += (i ? " " : "") + words[i];
+    i++;
+    setTimeout(step, 140);
   };
   step();
 }
@@ -272,33 +276,22 @@ function renderHeroIntro() {
   let rafScheduled = false;
   const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  let playing = false;
   const revealNext = () => {
     if (reducedMotion()) {
       spans.forEach(s => s.classList.add("is-in"));
       return;
     }
     if (revealed >= spans.length) return;
-    // Reveal up to 2 words per frame so the whole reveal completes in about 2s
-    // when scrolling slowly; faster scroll reveals more per frame.
-    const perFrame = Math.max(1, Math.ceil(spans.length / 60));
-    const batch = Math.min(perFrame, spans.length - revealed);
-    for (let i = 0; i < batch; i++) {
-      if (revealed < spans.length) {
-        spans[revealed].classList.add("is-in");
-        revealed++;
-      }
-    }
-    if (revealed < spans.length) {
-      rafScheduled = true;
-      requestAnimationFrame(() => { rafScheduled = false; revealNext(); });
-    }
+    spans[revealed].classList.add("is-in");
+    revealed++;
+    if (revealed < spans.length) setTimeout(revealNext, 110);
   };
-
   const checkScroll = () => {
-    if (!intro.isConnected) return;
+    if (playing || !intro.isConnected) return;
     const rect = intro.getBoundingClientRect();
-    const triggerPoint = window.innerHeight * 0.6;
-    if (rect.top < triggerPoint && rect.bottom > 0) {
+    if (rect.top < window.innerHeight * 0.85 && rect.bottom > 0) {
+      playing = true;
       revealNext();
     }
   };
