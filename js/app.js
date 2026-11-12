@@ -660,7 +660,7 @@ function paint() {
   };
   const onDown = e => {
     if (e.pointerType === "mouse") return;
-    stopLinger();
+    armLinger();
     aim(e); x = tx; y = ty; tr = medium(); kick();
   };
   const onUp = e => {
