@@ -525,47 +525,46 @@ function rebuild() {
   plate = renderEnglishPlate(translated, w, h);
   bands = [1, 3, 6, 14].map(block => pixelateCanvas(plate, block));
 }
-function drawReveal() {
-  rebuild();
-  const w = pixels.width, h = pixels.height;
-  const p = pixels.getContext("2d");
-  p.clearRect(0, 0, w, h);
-  if (r < 1 || !bands.length) return;
-  const d = dissolve;
-  const rings = [
-    [0, 0.58 * (1 - d), 0],
-    [0.56 * (1 - d), 0.76 * (1 - d) + 0.24 * d, 1],
-    [0.74 * (1 - d), 0.88 * (1 - d) + 0.5 * d, 2],
-    [0.86 * (1 - d), 1, 3]
-  ];
+function blitCircle(p, cx, cy, radius, sharp) {
+  if (radius < 1) return;
+  const rings = sharp
+    ? [[0, 1, 0]]
+    : [[0, 0.58, 0], [0.56, 0.76, 1], [0.74, 0.88, 2], [0.86, 1, 3]];
   p.save();
   p.beginPath();
-  p.arc(x, y, r, 0, Math.PI * 2);
+  p.arc(cx, cy, radius, 0, Math.PI * 2);
   p.clip();
-  rings.forEach(function (ringBand) {
-    const inner = ringBand[0], outer = ringBand[1], idx = ringBand[2];
+  rings.forEach(function (band) {
+    const inner = band[0], outer = band[1], idx = band[2];
     if (outer <= inner) return;
     p.save();
     p.beginPath();
-    p.arc(x, y, r * outer, 0, Math.PI * 2);
-    if (inner > 0) p.arc(x, y, r * inner, 0, Math.PI * 2, true);
+    p.arc(cx, cy, radius * outer, 0, Math.PI * 2);
+    if (inner > 0) p.arc(cx, cy, radius * inner, 0, Math.PI * 2, true);
     p.clip("evenodd");
     p.imageSmoothingEnabled = false;
     p.drawImage(bands[idx], 0, 0);
     p.restore();
   });
-  if (d > 0.15) {
-    p.globalCompositeOperation = "destination-out";
-    const block = 14;
-    const keep = 1 - d;
-    for (let py = y - r; py < y + r; py += block) {
-      for (let px = x - r; px < x + r; px += block) {
-        const n = Math.sin(px * 12.9898 + py * 78.233) * 43758.5453;
-        if ((n - Math.floor(n)) > keep) p.fillRect(px, py, block, block);
-      }
-    }
-  }
   p.restore();
+  p.save();
+  p.beginPath();
+  p.arc(cx, cy, radius, 0, Math.PI * 2);
+  p.strokeStyle = "rgba(201,154,59,0.9)";
+  p.lineWidth = sharp ? 2 : 1.25;
+  p.shadowColor = "rgba(201,154,59,0.75)";
+  p.shadowBlur = sharp ? 16 : 8;
+  p.stroke();
+  p.restore();
+}
+function drawReveal() {
+  rebuild();
+  const w = pixels.width, h = pixels.height;
+  const p = pixels.getContext("2d");
+  p.clearRect(0, 0, w, h);
+  if (!bands.length) return;
+  if (r >= 1) blitCircle(p, x, y, r, opened && !sweeping);
+  hints.forEach(h => blitCircle(p, h.x, h.y, h.r, false));
 }
 
   const stopPixel = pixelLoad(pixel);
@@ -573,6 +572,85 @@ function drawReveal() {
   const medium = () => Math.max(92, Math.min(156, Math.round(figure.clientWidth * 0.26)));
   let tx = 0, ty = 0, x = 0, y = 0, r = 0, tr = 0, raf = 0;
   let lingerTimer = 0, dissolveRaf = 0, dissolve = 0;
+  let opened = false, sweeping = false, sweep = 0, hovering = false;
+  let hintTimer = 0, hintRaf = 0;
+  const hints = [];
+
+function stopSweep() {
+  cancelAnimationFrame(sweep);
+  sweep = 0;
+}
+function sweepTo(toR, toX, toY, done) {
+  stopSweep();
+  cancelAnimationFrame(raf);
+  raf = 0;
+  clearTimeout(lingerTimer);
+  const fromR = r, fromX = x, fromY = y;
+  const t0 = performance.now();
+  const dur = reduced ? 0 : 2000;
+  sweeping = true;
+  figure.classList.add("is-live");
+  const step = now => {
+    const t = dur ? Math.min(1, (now - t0) / dur) : 1;
+    const e = 1 - Math.pow(1 - t, 3);
+    x = fromX + (toX - fromX) * e;
+    y = fromY + (toY - fromY) * e;
+    r = fromR + (toR - fromR) * e;
+    tr = r; tx = x; ty = y;
+    figure.style.setProperty("--rx", x + "px");
+    figure.style.setProperty("--ry", y + "px");
+    figure.style.setProperty("--rr", r + "px");
+    figure.style.setProperty("--ring-a", "1");
+    drawReveal();
+    if (t < 1) sweep = requestAnimationFrame(step);
+    else {
+      sweeping = false;
+      r = toR; x = toX; y = toY; tr = toR;
+      drawReveal();
+      if (done) done();
+    }
+  };
+  sweep = requestAnimationFrame(step);
+}
+function coverRadius(px, py) {
+  return Math.hypot(
+    Math.max(px, figure.clientWidth - px),
+    Math.max(py, figure.clientHeight - py)
+  ) + 4;
+}
+function pumpHints() {
+  if (hintRaf) return;
+  const step = () => {
+    hints.forEach(h => {
+      h.t += 0.018;
+      h.r = Math.sin(Math.min(1, h.t) * Math.PI) * h.max;
+    });
+    for (let i = hints.length - 1; i >= 0; i--) if (hints[i].t >= 1) hints.splice(i, 1);
+    drawReveal();
+    if (hints.length) hintRaf = requestAnimationFrame(step);
+    else hintRaf = 0;
+  };
+  hintRaf = requestAnimationFrame(step);
+}
+function scheduleHint() {
+  clearTimeout(hintTimer);
+  if (opened || hovering || sweeping) return;
+  hintTimer = setTimeout(() => {
+    if (opened || hovering || sweeping || !figure.isConnected) return;
+    const w = figure.clientWidth, h = figure.clientHeight;
+    if (w > 40 && h > 40 && hints.length < 2) {
+      hints.push({
+        x: 24 + Math.random() * (w - 48),
+        y: 20 + Math.random() * (h - 40),
+        r: 0,
+        max: 16 + Math.random() * 14,
+        t: 0
+      });
+      pumpHints();
+    }
+    scheduleHint();
+  }, 900 + Math.random() * 1600);
+}
 
   const ro = new ResizeObserver(() => { plate = null; rebuild(); drawReveal(); });
   ro.observe(figure);
@@ -585,6 +663,7 @@ function drawReveal() {
     });
   }
 function armLinger() {
+  if (opened || sweeping) return;
   clearTimeout(lingerTimer);
   cancelAnimationFrame(dissolveRaf);
   dissolveRaf = 0;
@@ -593,6 +672,7 @@ function armLinger() {
   lingerTimer = setTimeout(startDissolve, 10000);
 }
 function startDissolve() {
+  if (opened || sweeping) return;
   const t0 = performance.now();
   const dur = reduced ? 0 : 1000;
   const step = now => {
@@ -645,28 +725,50 @@ function paint() {
     ty = e.clientY - b.top;
   }
   const onEnter = e => {
-    if (e.pointerType === "touch") return;
+    if (e.pointerType === "touch" || opened || sweeping) return;
+    hovering = true;
+    hints.length = 0;
+    clearTimeout(hintTimer);
     aim(e); x = tx; y = ty; tr = medium(); kick();
-    armLinger();
   };
   const onMove = e => {
-    if (e.pointerType === "touch") return;
+    if (e.pointerType === "touch" || opened || sweeping) return;
+    hovering = true;
     aim(e); tr = medium(); kick();
-    armLinger();
   };
   const onLeave = e => {
-    if (e.pointerType === "touch") return;
-    armLinger();
+    if (e.pointerType === "touch" || opened || sweeping) return;
+    hovering = false;
+    tr = 0; kick();
+    scheduleHint();
   };
   const onDown = e => {
-    if (e.pointerType === "mouse") return;
-    armLinger();
+    if (e.pointerType === "mouse" || opened || sweeping) return;
     aim(e); x = tx; y = ty; tr = medium(); kick();
   };
-  const onUp = e => {
-    if (e.pointerType === "mouse") return;
+  const onClick = e => {
+    if (sweeping) return;
+    hovering = false;
+    hints.length = 0;
+    clearTimeout(hintTimer);
     clearTimeout(lingerTimer);
-    lingerTimer = setTimeout(startDissolve, 10000);
+    if (!opened) {
+      aim(e);
+      x = tx; y = ty; r = Math.max(r, 8);
+      opened = true;
+      figure.classList.add("is-open");
+      sweepTo(coverRadius(tx, ty), tx, ty);
+    } else {
+      opened = false;
+      figure.classList.remove("is-open");
+      sweepTo(0, x, y, () => {
+        r = 0; tr = 0;
+        figure.style.setProperty("--rr", "0px");
+        figure.classList.remove("is-live");
+        drawReveal();
+        scheduleHint();
+      });
+    }
   };
   figure.addEventListener("pointerenter", onEnter);
   figure.addEventListener("pointermove", onMove);
@@ -674,13 +776,13 @@ function paint() {
   figure.addEventListener("pointerdown", onDown);
   figure.addEventListener("pointerup", onUp);
   figure.addEventListener("pointercancel", onUp);
+  figure.addEventListener("click", onClick);
+  scheduleHint();
 
   heroCleanup = () => {
-    clearTimeout(lingerTimer);
-    cancelAnimationFrame(dissolveRaf);
-    ro.disconnect();
-    stopPixel();
-    cancelAnimationFrame(raf);
+    clearTimeout(hintTimer);
+    cancelAnimationFrame(hintRaf);
+    stopSweep();
     figure.removeEventListener("pointerenter", onEnter);
     figure.removeEventListener("pointermove", onMove);
     figure.removeEventListener("pointerleave", onLeave);
@@ -688,6 +790,8 @@ function paint() {
     figure.removeEventListener("pointerup", onUp);
     figure.removeEventListener("pointercancel", onUp);
     figure.classList.remove("is-live");
+    figure.removeEventListener("click", onClick);
+    figure.classList.remove("is-open"); 
   };
 }
 
