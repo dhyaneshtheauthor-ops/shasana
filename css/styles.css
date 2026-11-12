@@ -931,42 +931,43 @@ details summary::-webkit-details-marker { display: none; }
 .dyn-card.sub { border-style: dashed; opacity: 0.92; }
 
 /* Map tour overlay */
+/* Map tour — card only, no dark overlay */
 .tour-overlay {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(0, 0, 0, 0.55);
+  pointer-events: none;          /* let clicks pass through to the map */
+  background: transparent;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;   /* left side */
   padding: 20px;
 }
-[data-theme="light"] .tour-overlay { background: rgba(42, 33, 24, 0.45); }
-
 .tour-card {
+  pointer-events: auto;          /* only the card itself is clickable */
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 28px 24px;
-  max-width: 420px;
+  padding: 24px 22px;
+  max-width: 340px;
   width: 100%;
-  box-shadow: 0 12px 40px var(--shadow);
+  box-shadow: 0 8px 28px var(--shadow);
   color: var(--text);
-  position: relative;
+  margin-left: 16px;             /* a little breathing room from the edge */
 }
 .tour-card h3 {
-  margin: 0 0 12px;
-  font-size: 1.35rem;
+  margin: 0 0 10px;
+  font-size: 1.25rem;
   color: var(--gold);
 }
-.tour-card p { margin: 0 0 20px; line-height: 1.55; }
+.tour-card p { margin: 0 0 18px; line-height: 1.5; }
 .tour-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   justify-content: flex-end;
 }
 .tour-actions button {
-  padding: 10px 18px;
+  padding: 8px 16px;
   border-radius: 20px;
   font-weight: 600;
   cursor: pointer;
@@ -982,7 +983,7 @@ details summary::-webkit-details-marker { display: none; }
   color: var(--text);
 }
 
-/* Highlight ring for tour steps */
+/* Highlight stays the same */
 .tour-highlight {
   position: relative;
   z-index: 1001;
@@ -990,7 +991,6 @@ details summary::-webkit-details-marker { display: none; }
   outline-offset: 4px;
   border-radius: 12px;
   box-shadow: 0 0 0 6px rgba(201, 154, 59, 0.35);
-  transition: outline 0.2s, box-shadow 0.2s;
 }
 .tour-highlight-pulse {
   animation: tour-pulse 1.4s ease-in-out infinite;
