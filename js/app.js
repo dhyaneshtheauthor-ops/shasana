@@ -773,8 +773,6 @@ function paint() {
   figure.addEventListener("pointermove", onMove);
   figure.addEventListener("pointerleave", onLeave);
   figure.addEventListener("pointerdown", onDown);
-  figure.addEventListener("pointerup", onUp);
-  figure.addEventListener("pointercancel", onUp);
   figure.addEventListener("click", onClick);
   scheduleHint();
 
@@ -786,8 +784,6 @@ function paint() {
     figure.removeEventListener("pointermove", onMove);
     figure.removeEventListener("pointerleave", onLeave);
     figure.removeEventListener("pointerdown", onDown);
-    figure.removeEventListener("pointerup", onUp);
-    figure.removeEventListener("pointercancel", onUp);
     figure.classList.remove("is-live");
     figure.removeEventListener("click", onClick);
     figure.classList.remove("is-open"); 
