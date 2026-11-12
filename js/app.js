@@ -1529,7 +1529,7 @@ function highlightEl(selector) {
   return el;
 }
 
-function showTourCard(title, body, primaryLabel, onPrimary, secondaryLabel, onSecondary) {
+function showTourCard(title, body, primaryLabel, onPrimary, secondaryLabel, onSecondary, centered = false) {
   let overlay = document.getElementById("tourOverlay");
   if (!overlay) {
     overlay = document.createElement("div");
@@ -1537,6 +1537,7 @@ function showTourCard(title, body, primaryLabel, onPrimary, secondaryLabel, onSe
     overlay.className = "tour-overlay";
     document.body.appendChild(overlay);
   }
+  overlay.classList.toggle("tour-centered", centered);
   overlay.innerHTML = `
     <div class="tour-card">
       <h3>${title}</h3>
@@ -1599,7 +1600,6 @@ function runTourStep() {
   }
 
   else if (tourStep === 2) {
-    // Dynasty filter
     highlightEl("#mapDynasty");
     showTourCard(
       "Compare dynasties",
@@ -1610,18 +1610,17 @@ function runTourStep() {
       hideTour
     );
     const dyn = document.getElementById("mapDynasty");
-    tourTimers.push(setTimeout(() => {
-      if (!tourActive) return;
-      dyn.value = "Pandya";
+    let flip = false;
+    const loopDyn = () => {
+      if (!tourActive || tourStep !== 2) return;
+      dyn.value = flip ? "Chola" : "Pandya";
       dyn.dispatchEvent(new Event("change", { bubbles: true }));
-    }, 600));
-    tourTimers.push(setTimeout(() => {
-      if (!tourActive) return;
-      dyn.value = "Chola";
-      dyn.dispatchEvent(new Event("change", { bubbles: true }));
-    }, 1800));
+      flip = !flip;
+      tourTimers.push(setTimeout(loopDyn, 1400));
+    };
+    tourTimers.push(setTimeout(loopDyn, 500));
   }
-
+    
   else if (tourStep === 3) {
     // Specific king
     highlightEl("#mapKing");
@@ -1643,11 +1642,10 @@ function runTourStep() {
   }
 
   else if (tourStep === 4) {
-    // Century timeline
     highlightEl("#timelineBar");
     showTourCard(
       "Travel through time",
-      "The bar at the bottom lets you jump across centuries. Watch it cycle quickly so you can see how the map updates.",
+      "The bar at the bottom lets you jump across centuries. Watch it cycle so you can see how the map updates.",
       "Next",
       () => { tourStep = 5; runTourStep(); },
       "Skip",
@@ -1656,9 +1654,9 @@ function runTourStep() {
     const dots = Array.from(document.querySelectorAll(".tl-dot")).filter(d => d.dataset.cen);
     let idx = 0;
     const cycle = () => {
-      if (!tourActive || tourStep !== 4 || idx >= dots.length) return;
+      if (!tourActive || tourStep !== 4) return;
       dots.forEach(d => d.classList.remove("active"));
-      const btn = dots[idx];
+      const btn = dots[idx % dots.length];
       btn.classList.add("active");
       currentFilters.cen = btn.dataset.cen || "";
       if (typeof refreshMarkers === "function") refreshMarkers();
@@ -1675,7 +1673,8 @@ function runTourStep() {
       "Finish",
       hideTour,
       null,
-      null
+      null,
+      true   // centered + dark overlay
     );
   }
 }
@@ -1742,7 +1741,8 @@ function renderMap() {
       "Take the tour",
       startMapTour,
       "Skip",
-      hideTour
+      hideTour,
+      true   // centered + dark overlay
     );
   }, 400);
 }
