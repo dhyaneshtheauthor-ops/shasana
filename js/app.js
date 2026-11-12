@@ -1485,6 +1485,201 @@ let mapMarkers = [];
 let selectedMarker = null;
 let currentFilters = { q: "", dyn: "", king: "", cen: "", year: "" };
 
+let tourActive = false;
+let tourStep = 0;
+let tourTimers = [];
+
+function clearTourTimers() {
+  tourTimers.forEach(t => clearTimeout(t));
+  tourTimers = [];
+}
+
+function resetMapState() {
+  currentFilters = { q: "", dyn: "", king: "", cen: "", year: "" };
+  const search = document.getElementById("mapSearch");
+  const dyn = document.getElementById("mapDynasty");
+  const king = document.getElementById("mapKing");
+  const cen = document.getElementById("mapCentury");
+  const year = document.getElementById("mapYear");
+  if (search) search.value = "";
+  if (dyn) dyn.value = "";
+  if (king) king.value = "";
+  if (cen) cen.value = "";
+  if (year) year.value = "";
+  document.querySelectorAll(".tl-dot").forEach(b => b.classList.remove("active"));
+  const allBtn = document.querySelector('.tl-dot[data-cen=""]');
+  if (allBtn) allBtn.classList.add("active");
+  const pin = document.getElementById("pinCard");
+  if (pin) pin.style.display = "none";
+  document.querySelectorAll(".tour-highlight").forEach(el => {
+    el.classList.remove("tour-highlight", "tour-highlight-pulse");
+  });
+  if (typeof refreshMarkers === "function") refreshMarkers();
+}
+
+function highlightEl(selector) {
+  document.querySelectorAll(".tour-highlight").forEach(el => {
+    el.classList.remove("tour-highlight", "tour-highlight-pulse");
+  });
+  const el = document.querySelector(selector);
+  if (el) {
+    el.classList.add("tour-highlight", "tour-highlight-pulse");
+    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  return el;
+}
+
+function showTourCard(title, body, primaryLabel, onPrimary, secondaryLabel, onSecondary) {
+  let overlay = document.getElementById("tourOverlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "tourOverlay";
+    overlay.className = "tour-overlay";
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div class="tour-card">
+      <h3>${title}</h3>
+      <p>${body}</p>
+      <div class="tour-actions">
+        ${secondaryLabel ? `<button class="tour-btn-secondary" id="tourSkip">${secondaryLabel}</button>` : ""}
+        <button class="tour-btn-primary" id="tourNext">${primaryLabel}</button>
+      </div>
+    </div>`;
+  overlay.style.display = "flex";
+  document.getElementById("tourNext").onclick = onPrimary;
+  if (secondaryLabel) document.getElementById("tourSkip").onclick = onSecondary;
+}
+
+function hideTour() {
+  clearTourTimers();
+  tourActive = false;
+  const overlay = document.getElementById("tourOverlay");
+  if (overlay) overlay.style.display = "none";
+  resetMapState();
+  localStorage.setItem("shasana-map-tour-done", "1");
+}
+
+function startMapTour() {
+  tourActive = true;
+  tourStep = 1;
+  runTourStep();
+}
+
+function runTourStep() {
+  clearTourTimers();
+  resetMapState();
+
+  if (tourStep === 1) {
+    // Search box
+    highlightEl("#mapSearch");
+    showTourCard(
+      "Find anything fast",
+      "Type a temple, king, or place in the search bar. Watch a few examples appear — then we’ll clear them so you can try your own.",
+      "Next",
+      () => { tourStep = 2; runTourStep(); },
+      "Skip",
+      hideTour
+    );
+    const search = document.getElementById("mapSearch");
+    const samples = ["Thanjavur", "Rajaraja", "Madurai"];
+    let i = 0;
+    const typeSample = () => {
+      if (!tourActive || tourStep !== 1) return;
+      if (i >= samples.length) {
+        search.value = "";
+        return;
+      }
+      search.value = samples[i];
+      search.dispatchEvent(new Event("input", { bubbles: true }));
+      i++;
+      tourTimers.push(setTimeout(typeSample, 1100));
+    };
+    tourTimers.push(setTimeout(typeSample, 400));
+  }
+
+  else if (tourStep === 2) {
+    // Dynasty filter
+    highlightEl("#mapDynasty");
+    showTourCard(
+      "Compare dynasties",
+      "Switch between Pandya (green) and Chola (red) to see how the map changes. Pins colour-code by dynasty so you can spot patterns at a glance.",
+      "Next",
+      () => { tourStep = 3; runTourStep(); },
+      "Skip",
+      hideTour
+    );
+    const dyn = document.getElementById("mapDynasty");
+    tourTimers.push(setTimeout(() => {
+      if (!tourActive) return;
+      dyn.value = "Pandya";
+      dyn.dispatchEvent(new Event("change", { bubbles: true }));
+    }, 600));
+    tourTimers.push(setTimeout(() => {
+      if (!tourActive) return;
+      dyn.value = "Chola";
+      dyn.dispatchEvent(new Event("change", { bubbles: true }));
+    }, 1800));
+  }
+
+  else if (tourStep === 3) {
+    // Specific king
+    highlightEl("#mapKing");
+    showTourCard(
+      "Meet a king",
+      "Filter to a single ruler and a card appears with their story and related inscriptions. Here’s Rajaraja Chola I.",
+      "Next",
+      () => { tourStep = 4; runTourStep(); },
+      "Skip",
+      hideTour
+    );
+    tourTimers.push(setTimeout(() => {
+      if (!tourActive) return;
+      const kingSel = document.getElementById("mapKing");
+      kingSel.value = "chola_rajaraja_i";
+      kingSel.dispatchEvent(new Event("change", { bubbles: true }));
+      if (typeof showKingCard === "function") showKingCard("chola_rajaraja_i");
+    }, 500));
+  }
+
+  else if (tourStep === 4) {
+    // Century timeline
+    highlightEl("#timelineBar");
+    showTourCard(
+      "Travel through time",
+      "The bar at the bottom lets you jump across centuries. Watch it cycle quickly so you can see how the map updates.",
+      "Next",
+      () => { tourStep = 5; runTourStep(); },
+      "Skip",
+      hideTour
+    );
+    const dots = Array.from(document.querySelectorAll(".tl-dot")).filter(d => d.dataset.cen);
+    let idx = 0;
+    const cycle = () => {
+      if (!tourActive || tourStep !== 4 || idx >= dots.length) return;
+      dots.forEach(d => d.classList.remove("active"));
+      const btn = dots[idx];
+      btn.classList.add("active");
+      currentFilters.cen = btn.dataset.cen || "";
+      if (typeof refreshMarkers === "function") refreshMarkers();
+      idx++;
+      tourTimers.push(setTimeout(cycle, 450));
+    };
+    tourTimers.push(setTimeout(cycle, 400));
+  }
+
+  else if (tourStep === 5) {
+    showTourCard(
+      "You’re all set",
+      "Search, filter by dynasty or king, or slide through the centuries — the map updates instantly. Explore freely!",
+      "Finish",
+      hideTour,
+      null,
+      null
+    );
+  }
+}
+
 function getFilteredInscriptions(t) {
   return t.inscriptions.filter(i => {
     if (currentFilters.dyn && i.dynasty_normalized !== currentFilters.dyn) return false;
@@ -1542,8 +1737,19 @@ function renderMap() {
       document.getElementById("mapCentury").value = btn.dataset.cen || "";
       document.querySelectorAll(".tl-dot").forEach(b => b.classList.toggle("active", b === btn));
       refreshMarkers();
-    });
-  });
+    // Auto-show tour for new visitors
+  if (!localStorage.getItem("shasana-map-tour-done")) {
+    setTimeout(() => {
+      showTourCard(
+        "Welcome to the map",
+        "This interactive map lets you browse temples, kings, and inscriptions across Tamil Nadu. Take a quick tour or jump straight in.",
+        "Take the tour",
+        startMapTour,
+        "Skip",
+        hideTour
+      );
+    }, 400);
+  }
 }
 
 function onSearchInput(e) {
