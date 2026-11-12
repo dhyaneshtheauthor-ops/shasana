@@ -398,7 +398,7 @@ function renderEnglishPlate(svg, w, h) {
   const text = svg.querySelector("text");
   const fs = parseFloat((text && text.getAttribute("font-size")) || "6") * scale;
   ctx.font = '400 ' + fs.toFixed(2) + 'px "Source Sans 3", sans-serif';
-  ctx.fillStyle = document.documentElement.getAttribute("data-theme") === "light" ? "#654d1e" : "#C99A3B";
+  ctx.fillStyle = document.documentElement.getAttribute("data-theme") === "light" ? "#463615" : "#C99A3B";
   ctx.textBaseline = "alphabetic";
   svg.querySelectorAll("textPath").forEach(tp => {
     const id = (tp.getAttribute("href") || "").slice(1);
