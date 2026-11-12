@@ -205,12 +205,6 @@ header.site {
   -webkit-mask-image: radial-gradient(circle at var(--rx) var(--ry), transparent var(--rr), #000 calc(var(--rr) + 0.5px));
   mask-image: radial-gradient(circle at var(--rx) var(--ry), transparent var(--rr), #000 calc(var(--rr) + 0.5px));
 }
-.hero-text-en { opacity: 0; }
-.hero-map.is-live .hero-text-en {
-  opacity: 1;
-  -webkit-mask-image: radial-gradient(circle at var(--rx) var(--ry), #000 var(--rr), transparent calc(var(--rr) + 0.5px));
-  mask-image: radial-gradient(circle at var(--rx) var(--ry), #000 var(--rr), transparent calc(var(--rr) + 0.5px));
-}
 .hero-ripple {
   position: absolute;
   left: var(--rx);
