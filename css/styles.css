@@ -288,17 +288,13 @@ header.site {
 }
 .hero-intro h3 .word {
   display: inline-block;
-  color: var(--text);
-  transition: color 2s ease;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .35s ease, transform .35s ease;
 }
-[data-theme="dark"] .hero-intro h3 .word {
-  color: #a89f90;
-}
-[data-theme="dark"] .hero-intro h3 .word.is-in {
-  color: #EDE6D8;
-}
-[data-theme="light"] .hero-intro h3 .word.is-in {
-  color: #2A2118;
+.hero-intro h3 .word.is-in {
+  opacity: 1;
+  transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -336,7 +332,23 @@ header.site {
   overflow: hidden; transition: transform .2s ease, border-color .2s ease;
 }
 .card:hover { transform: translateY(-2px); border-color: rgba(201,154,59,.4); }
+.card[data-rise], .stat[data-rise] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity .6s ease, transform .6s ease, border-color .2s ease;
+  transition-delay: var(--rise-delay, 0ms);
+}
+.card[data-rise].is-in, .stat[data-rise].is-in {
+  opacity: 1;
+  transform: none;
+}
+.card[data-rise].is-in:hover { transform: translateY(-2px); }
+.card[data-rise].is-out, .stat[data-rise].is-out {
+  opacity: 0;
+  transform: translateY(-20px);
+}
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } .card:hover { transform: none; } }
+.card[data-rise], .stat[data-rise] { opacity: 1; transform: none; }
 .card-img { width: 100%; aspect-ratio: 16/10; object-fit: cover; background: #1a1816; }
 .card-body { padding: 14px 16px; }
 .card h3 { margin: 0 0 6px; font-size: 1.1rem; }
@@ -344,6 +356,7 @@ header.site {
 .tag-pandya { background: var(--verdigris); color: #fff; }
 .tag-chola { background: var(--kumkum); color: #fff; }
 .badge { background: var(--gold); color: #1C1A18; padding: 2px 8px; border-radius: 10px; font-size: .75rem; font-weight: 700; }
+
 
 /* Horizontal scroll */
 .hscroll { display: flex; gap: 14px; overflow-x: auto; padding: 8px 0 16px; scroll-snap-type: x mandatory; }
