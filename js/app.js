@@ -693,6 +693,7 @@ function startDissolve() {
 }
   
 function paint() {
+  if (sweeping || opened) { raf = 0; return; }
   const k = reduced ? 1 : 0.35;
   x += (tx - x) * k;
   y += (ty - y) * k;
